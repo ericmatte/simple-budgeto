@@ -9,7 +9,7 @@ export function currentTheme() {
   return document.documentElement.dataset.theme === 'light' ? 'light' : DEFAULT;
 }
 
-export function setTheme(theme) {
+function setTheme(theme) {
   const next = theme === 'light' ? 'light' : DEFAULT;
   document.documentElement.dataset.theme = next;
   try { localStorage.setItem(KEY, next); } catch { /* private mode: this session only */ }

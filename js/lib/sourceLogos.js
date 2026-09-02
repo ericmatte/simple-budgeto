@@ -21,10 +21,6 @@ export function sourceLabel(source) {
   return LOGOS[source]?.label || NAMES[source] || (source ? String(source) : 'Source inconnue');
 }
 
-export function hasSourceLogo(source) {
-  return !!LOGOS[source];
-}
-
 // One colour per Splitwise group, dealt out around the wheel rather than
 // hashed from the name: the whole point is telling two groups apart at a
 // glance, and two names hashed freely can land a few degrees from each other.

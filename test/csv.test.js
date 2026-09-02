@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCsv, parseCsvIndexed, toCsv, detectDelimiter } from '../js/lib/csv.js';
+import { parseCsv, parseCsvIndexed, detectDelimiter } from '../js/lib/csv.js';
 
 test('parseCsv splits on comma and trims cells', () => {
   const rows = parseCsv('a, b ,c\n1,2,3');
@@ -26,17 +26,6 @@ test('detectDelimiter picks the most frequent candidate', () => {
   assert.equal(detectDelimiter('a;b;c'), ';');
   assert.equal(detectDelimiter('a,b,c'), ',');
   assert.equal(detectDelimiter('a\tb\tc'), '\t');
-});
-
-test('toCsv quotes fields containing the delimiter', () => {
-  const out = toCsv([['a', 'b,c'], ['1', '2']], ',');
-  assert.equal(out, 'a,"b,c"\n1,2\n');
-});
-
-test('parseCsv/toCsv round-trip preserves data', () => {
-  const rows = [['date', 'description', 'amount'], ['2026-01-01', 'Épicerie, IGA', '-45.67']];
-  const csv = toCsv(rows, ',');
-  assert.deepEqual(parseCsv(csv), rows);
 });
 
 test('parseCsvIndexed reports the real file line of each row, blank lines included', () => {

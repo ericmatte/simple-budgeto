@@ -3,7 +3,6 @@ import { createTransactionsView } from './views/transactions.js';
 import { demoTransactions } from './demo.js';
 import { currentTheme, toggleTheme } from './lib/theme.js';
 import { icon } from './lib/icons.js';
-import { playOnce } from './lib/animate.js';
 
 const store = createStore();
 const transactionsView = createTransactionsView(store);
@@ -56,79 +55,20 @@ function withPreservedScroll(build) {
   if (window.scrollY !== y) window.scrollTo({ top: y, behavior: 'instant' });
 }
 
-// Which screen is on display — not just the tab, so the first paint after
-// loading animates in too.
-function screenKey() {
-  const { loading, view } = store.state;
-  if (loading) return 'loading';
-  return 'view:' + view;
-}
+let hasRendered = false;
 
-let renderedScreen = null;
-
-// The transition plays on a *tab* change only. Every store change re-renders
-// the whole app, so animating on any render would replay it on every
-// keystroke, checkbox and cell edit — which is exactly what the importer's
-// card used to do. Restricting it to tab-to-tab also means a reload (which
-// goes loading -> dashboard, not tab -> tab) arrives with no animation at all.
+// The very first paint has no scroll offsets worth keeping; every render
+// after it does.
 function render() {
-  const previous = renderedScreen;
-  const next = screenKey();
-  renderedScreen = next;
-
-  if (previous === next) {
+  if (hasRendered) {
     withPreservedScroll(renderNow);
     return;
   }
+  hasRendered = true;
   renderNow();
-}
-
-// Slides the outgoing tab out and the incoming one in, in the direction of
-// travel along the tab bar. The outgoing content is kept as a positioned
-// copy over the new one for the length of the animation — the live node is
-// destroyed by the re-render, so there is nothing left to animate otherwise.
-function swapViews(direction) {
-  const main = root.querySelector('.main');
-  const outgoing = document.getElementById('view');
-  if (!main || !outgoing || prefersReducedMotion()) {
-    renderNow();
-    return;
-  }
-
-  const ghost = outgoing.cloneNode(true);
-  ghost.removeAttribute('id');
-  ghost.className = 'view-ghost view-out-' + direction;
-  ghost.style.height = outgoing.offsetHeight + 'px';
-  ghost.style.width = outgoing.offsetWidth + 'px';
-
-  renderNow();
-
-  main.classList.add('view-swapping');
-  main.appendChild(ghost);
-  playOnce(document.getElementById('view'), 'view-in-' + direction);
-
-  const done = () => {
-    ghost.remove();
-    main.classList.remove('view-swapping');
-  };
-  ghost.addEventListener('animationend', done, { once: true });
-  // The copy must never outlive the animation, even if the event is missed
-  // (a background tab never fires it) — a stale overlay would swallow clicks.
-  setTimeout(done, 500);
-}
-
-function prefersReducedMotion() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
 function renderNow() {
-  const { loading, view } = store.state;
-
-  if (loading) {
-    root.innerHTML = `<div style="padding:120px 30px; text-align:center; color:var(--sub); font-weight:700;">Chargement de vos données…</div>`;
-    return;
-  }
-
   root.innerHTML = `
     <div class="app-header">
       <div class="app-header-top">

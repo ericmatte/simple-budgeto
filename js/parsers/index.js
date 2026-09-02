@@ -7,7 +7,7 @@ import * as generic from './generic.js';
 // Order matters: more specific formats first, generic budget-CSV last.
 const ADAPTERS = [cibc, tangerine, wealthsimple, splitwise, generic];
 
-export const LABELS = {
+const LABELS = {
   cibc: 'CIBC Visa',
   tangerine: 'Tangerine Mastercard',
   wealthsimple: 'Wealthsimple',

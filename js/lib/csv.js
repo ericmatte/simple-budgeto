@@ -62,16 +62,3 @@ export function parseCsv(text, delimiter) {
   return parseCsvIndexed(text, delimiter).rows;
 }
 
-function needsQuoting(cell, delimiter) {
-  return cell.includes(delimiter) || cell.includes('"') || cell.includes('\n');
-}
-
-export function toCsvCell(value, delimiter) {
-  const s = value == null ? '' : String(value);
-  if (needsQuoting(s, delimiter)) return '"' + s.replace(/"/g, '""') + '"';
-  return s;
-}
-
-export function toCsv(rows, delimiter = ',') {
-  return rows.map(r => r.map(c => toCsvCell(c, delimiter)).join(delimiter)).join('\n') + '\n';
-}
