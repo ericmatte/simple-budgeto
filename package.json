@@ -13,10 +13,6 @@
     "deadcode": "knip --production --exclude exports,types",
     "deadcode:full": "knip --production"
   },
-  "dependencies": {
-    "@emoji-mart/data": "^1.2.1",
-    "emoji-mart": "^5.6.0"
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.9.1",
