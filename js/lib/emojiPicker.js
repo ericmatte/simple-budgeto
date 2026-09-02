@@ -1,11 +1,15 @@
-import { Picker } from '/node_modules/emoji-mart/dist/module.js';
+import { Picker } from '../../vendor/emoji-mart/module.js';
 import { currentTheme } from './theme.js';
+
+// Resolved against this module's URL rather than the document so the app works
+// from any base path (a project GitHub Pages site is served under /<repo>/).
+const DATA_URL = new URL('../../vendor/emoji-mart/native.json', import.meta.url);
 
 let activeClose = null;
 let dataPromise = null;
 
 function loadData() {
-  if (!dataPromise) dataPromise = fetch('/node_modules/@emoji-mart/data/sets/15/native.json').then(r => r.json());
+  if (!dataPromise) dataPromise = fetch(DATA_URL).then(r => r.json());
   return dataPromise;
 }
 
