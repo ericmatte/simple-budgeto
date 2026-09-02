@@ -1,48 +1,56 @@
 import { stableHash } from './lib/normalize.js';
 
-// Seed data for the demo mode — a plausible year of budgeting, generated
-// relative to today so the dashboard always opens on a populated window
-// instead of an empty one. Fed to the real store, which keeps it in memory
-// (no folder is picked, so nothing is ever written to disk).
+// Seed data for the demo mode: three months of transactions, one file per
+// supported format, generated relative to today so the list always opens on
+// something. Fed to the real store, which keeps it in memory.
+//
+// Every row carries the raw CSV line it would have arrived on, built from its
+// own date and amount — opening a row in the demo shows the same source-line
+// panel a real import does, and the two never disagree.
 
-const SPEND = [
-  { category: 'Épicerie', base: 620, spread: 120, perMonth: 4, source: 'cibc', label: 'MARCHE NORDET' },
-  { category: 'Restaurants', base: 210, spread: 90, perMonth: 3, source: 'cibc', label: 'RESTO PONANT' },
-  { category: 'Logement', base: 1450, spread: 0, perMonth: 1, source: 'tangerine', label: 'LOYER' },
-  { category: 'Services', base: 185, spread: 40, perMonth: 2, source: 'tangerine', label: 'ELECTRICITE REGIONALE' },
-  { category: 'Transport', base: 240, spread: 70, perMonth: 2, source: 'cibc', label: 'ESSENCE PONANT' },
-  { category: 'Santé', base: 95, spread: 45, perMonth: 1, source: 'cibc', label: 'PHARMACIE ZENITH' },
-  { category: 'Assurance', base: 160, spread: 0, perMonth: 1, source: 'tangerine', label: 'ASSURANCE AUTO' },
-  { category: 'Loisirs', base: 175, spread: 80, perMonth: 2, source: 'cibc', label: 'CINEMA ALIZE' },
-  { category: 'Voyage', base: 0, spread: 900, perMonth: 1, source: 'cibc', label: 'BILLETS ALIZE' },
-  { category: 'Enfants', base: 260, spread: 60, perMonth: 2, source: 'splitwise', label: 'GARDERIE' },
-  { category: 'Vêtements', base: 110, spread: 70, perMonth: 1, source: 'cibc', label: 'BOUTIQUE MISTRAL' },
-];
+const MONTHS = 3;
+const ME = 'Alix N.';
+const ROOMMATES = 'Colocs Sainte-Brise';
+const TRIP = 'Escapade 2026';
 
-// Merchants nobody has told the budget about yet, so the demo opens with the
-// "à classer" screen carrying something to do — which is where a real import
-// leaves you.
-const UNSORTED = [
-  { label: 'RESTO PONANT #12', amount: -6.85, per: 4, source: 'cibc' },
-  { label: 'BOUTIQUE EN LIGNE *4XK2', amount: -38.4, per: 2, source: 'cibc' },
-  { label: 'SQ *CAFE ALIZE', amount: -12.25, per: 3, source: 'cibc' },
-  { label: 'BAZAR LEVANT #118', amount: -21.8, per: 1, source: 'tangerine' },
-];
+const FILES = {
+  cibc: 'cibc-visa-releve.csv',
+  tangerine: 'tangerine-mastercard.csv',
+  wealthsimple: 'wealthsimple-activities.csv',
+  generic: 'budget-2026.csv',
+  [ROOMMATES]: 'colocs-sainte-brise_export.csv',
+  [TRIP]: 'escapade-2026_export.csv',
+};
 
-// A Splitwise group that is a trip: its categories are Splitwise's own, and
-// the group is filed under a project of the same name, so its spending gets a
-// section of its own instead of diluting into the everyday categories.
-const TRIP_GROUP = 'Escapade 2026';
-const TRIP = [
-  { swCategory: 'Dining out', amount: -64.2, per: 3 },
-  { swCategory: 'Transportation', amount: -41.5, per: 2 },
-  { swCategory: 'Entertainment', amount: -55.0, per: 1 },
-];
+// The header each export actually ships. CIBC has none — its columns are
+// named by the view's own fallback list.
+const HEADERS = {
+  cibc: '',
+  tangerine: 'Transaction date,Transaction,Name,Memo,Amount',
+  wealthsimple: 'effective_at,settlement_date,account_id,account_type,activity_type,activity_sub_type,description,direction,symbol,name,currency,quantity,unit_price,commission,net_cash_amount',
+  generic: 'date;type;description;montant;categorie',
+  splitwise: `Date,Description,Category,Cost,Currency,${ME},Bruno L.`,
+};
 
-const MONTHS_BACK = 10;
+const money2 = (n) => Math.abs(n).toFixed(2);
+const mdy = (iso) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
+const quote = (s) => (s.includes(',') ? `"${s}"` : s);
 
-// Deterministic pseudo-random so the demo looks the same on every reload —
-// a budget whose numbers dance around on refresh is impossible to reason about.
+const RAW_LINE = {
+  cibc: (date, label, amount) =>
+    `${date},${quote(label)},${amount < 0 ? money2(amount) : ''},${amount > 0 ? money2(amount) : ''},4506******1234`,
+  tangerine: (date, label, amount, memo = '') =>
+    `${mdy(date)},${amount < 0 ? 'DEBIT' : 'CREDIT'},${quote(label)},${quote(memo)},${amount.toFixed(2)}`,
+  wealthsimple: (date, label, amount, subType) =>
+    `${date}T20:00:00-04:00,,DEMO,Chequing,MoneyMovement,${subType},${quote(label)},,,,CAD,${amount.toFixed(2)},,,${amount.toFixed(2)}`,
+  generic: (date, label, amount, category) => `${date};reel;${label};${amount.toFixed(2)};${category}`,
+  // Splitwise states the full cost and then what each member's share of it is.
+  splitwise: (date, label, category, cost, myShare) =>
+    `${date},${quote(label)},${category},${cost.toFixed(2)},CAD,${myShare.toFixed(2)},${(-myShare).toFixed(2)}`,
+};
+
+// Deterministic pseudo-random, so the demo looks the same on every reload —
+// a list whose numbers dance around on refresh is impossible to reason about.
 function jitter(seed, spread) {
   if (!spread) return 0;
   const h = [...String(seed)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 100000, 7);
@@ -55,108 +63,121 @@ function monthKey(offset) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// The export each row would have arrived in — the "à classer" screen shows it
-// so a line can be traced back to the file it came from.
-const FILES = {
-  cibc: 'cibc-releve-aout.csv',
-  tangerine: 'tangerine-mastercard.csv',
-  wealthsimple: 'wealthsimple-activities.csv',
-  splitwise: 'splitwise-export.csv',
-};
+function vary(seed, base, spread) {
+  return Math.round((base + jitter(seed, spread)) * 100) / 100;
+}
 
 function row(fields) {
   return {
-    id: fields.id, dedupeKey: fields.dedupeKey || fields.id, kind: 'reel', date: '', description: '',
-    amount: 0, category: 'Non classé', group: '', freq: null, month: null, note: '', sources: [],
-    linkedId: null, importBatchId: 'demo', status: 'active', matchAmount: null,
-    swGroup: '', swCategory: '', file: '', ...fields,
+    id: fields.id, dedupeKey: fields.dedupeKey || fields.id, kind: 'reel',
+    date: '', description: '', amount: 0, note: '',
+    sources: [], matchAmount: null, matchDate: null, matchDescription: '',
+    swCategory: '', swGroup: '', rawEntries: [], file: '',
+    importBatchId: 'demo', status: 'active',
+    category: '', group: '', freq: null, month: null, linkedId: null,
+    ...fields,
   };
+}
+
+// A line that arrived from one file and nothing else.
+function plain(key, day, { source, label, amount, spread = 0, memo, subType, category }) {
+  const seed = `${key}-${label}-${day}`;
+  const date = `${key}-${day}`;
+  const value = vary(seed, amount, spread);
+  const line = RAW_LINE[source](date, label, value, memo ?? subType ?? category);
+  return row({
+    id: `demo-${stableHash(seed)}`,
+    date, description: label, amount: value, sources: [source], file: FILES[source],
+    rawEntries: [{ source, file: FILES[source], header: HEADERS[source], line }],
+  });
+}
+
+// A bank line and the Splitwise expense it settled, already reconciled — the
+// shape confirmImport() leaves behind. `swDay` is the day Splitwise recorded
+// the expense on: when it differs from the bank's, the row says so.
+function shared(key, day, { source, label, amount, spread = 0, group, swLabel, swCategory, swDay, cost }) {
+  const seed = `${key}-${swLabel}-${day}`;
+  const date = `${key}-${day}`;
+  const myShare = vary(seed, amount, spread);
+  const swDate = `${key}-${swDay || day}`;
+  const fullCost = cost || Math.round(myShare * -2 * 100) / 100;
+  return row({
+    id: `demo-${stableHash(seed)}`,
+    date, description: label, amount: myShare,
+    sources: [source, 'splitwise'],
+    matchDescription: swLabel, matchAmount: fullCost,
+    matchDate: swDate === date ? null : swDate,
+    swCategory, swGroup: group, file: FILES[source],
+    rawEntries: [
+      { source, file: FILES[source], header: HEADERS[source], line: RAW_LINE[source](date, label, -fullCost, `Category: ${swCategory}`) },
+      // I paid the whole thing, so my Splitwise column is what comes back to
+      // me — the opposite sign of the share the row settles on.
+      { source: 'splitwise', file: FILES[group], header: HEADERS.splitwise, line: RAW_LINE.splitwise(swDate, swLabel, swCategory, fullCost, -myShare) },
+    ],
+  });
+}
+
+// A Splitwise expense somebody else paid: there is no bank line to pair it
+// with, so it stands on its own.
+function owed(key, day, { group, swLabel, swCategory, amount, spread = 0 }) {
+  const seed = `${key}-owed-${swLabel}-${day}`;
+  const date = `${key}-${day}`;
+  const myShare = vary(seed, amount, spread);
+  const fullCost = Math.round(myShare * -2 * 100) / 100;
+  return row({
+    id: `demo-${stableHash(seed)}`,
+    date, description: swLabel, amount: myShare,
+    sources: ['splitwise'], matchAmount: fullCost,
+    swCategory, swGroup: group, file: FILES[group],
+    rawEntries: [{
+      source: 'splitwise', file: FILES[group], header: HEADERS.splitwise,
+      line: RAW_LINE.splitwise(date, swLabel, swCategory, fullCost, myShare),
+    }],
+  });
 }
 
 export function demoTransactions() {
   const out = [];
-  const oldest = monthKey(MONTHS_BACK);
 
-  out.push(row({
-    id: 'demo-solde', kind: 'solde', date: `${oldest}-01`, amount: 21400,
-    description: 'Solde de départ', category: '',
-  }));
-  out.push(row({
-    id: 'demo-objectif', kind: 'objectif', amount: 60000,
-    description: 'Mise de fonds maison', category: '',
-  }));
-
-  for (let back = MONTHS_BACK; back >= 0; back--) {
+  for (let back = MONTHS - 1; back >= 0; back--) {
     const key = monthKey(back);
-    out.push(row({
-      id: `demo-paie-${key}`, date: `${key}-01`, amount: 4380 + Math.round(jitter(key, 300)),
-      description: 'DEPOT SALAIRE', category: 'Revenus', sources: ['wealthsimple'], file: FILES.wealthsimple,
+
+    out.push(plain(key, '01', { source: 'wealthsimple', label: 'Dépôt de paie', amount: 2190, spread: 140, subType: 'AFT_IN' }));
+    out.push(plain(key, '15', { source: 'wealthsimple', label: 'Dépôt de paie', amount: 2190, spread: 140, subType: 'AFT_IN' }));
+    out.push(plain(key, '02', { source: 'tangerine', label: 'LOYER SAINTE-BRISE', amount: -1450, memo: 'Category: Housing' }));
+    out.push(plain(key, '05', { source: 'tangerine', label: 'ASSURANCE AUTO MISTRAL', amount: -162, memo: 'Category: Insurance' }));
+    out.push(plain(key, '09', { source: 'cibc', label: 'ESSENCE PONANT W13 SAINTE-BRISE, QC', amount: -78, spread: 24 }));
+    out.push(plain(key, '11', { source: 'cibc', label: 'PHARMACIE ZENITH #204', amount: -46, spread: 30 }));
+    out.push(plain(key, '17', { source: 'cibc', label: 'SQ *CAFE ALIZE', amount: -12.25, spread: 5 }));
+    out.push(plain(key, '22', { source: 'cibc', label: 'BOUTIQUE MISTRAL', amount: -88, spread: 55 }));
+    out.push(plain(key, '24', { source: 'generic', label: 'Abonnement transport', amount: -97, category: 'Transport' }));
+
+    // Money that moves without being a purchase: the list keeps it but steps
+    // it back, and the cashback total in the header counts it.
+    out.push(plain(key, '27', { source: 'cibc', label: 'CASHBACK/REMISE EN ARGENT', amount: 14.4, spread: 9 }));
+    out.push(plain(key, '28', { source: 'cibc', label: 'PAIEMENT RECU - MERCI', amount: 1240, spread: 320 }));
+
+    // Splitwise, both ways round: the groceries land on the day the card was
+    // charged, so there is nothing to warn about; the internet bill was
+    // entered in Splitwise days after the card posted it, and the row carries
+    // the gap.
+    out.push(shared(key, '07', {
+      source: 'cibc', label: 'MARCHE NORDET #8 SAINTE-BRISE, QC', amount: -59.2, spread: 18,
+      group: ROOMMATES, swLabel: 'Épicerie de la semaine', swCategory: 'Groceries',
     }));
-    if (back % 3 === 0) {
-      out.push(row({
-        id: `demo-bonus-${key}`, date: `${key}-15`, amount: 520,
-        description: 'REMBOURSEMENT FRAIS', category: 'Revenus', sources: ['wealthsimple'],
-      }));
-    }
-
-    for (const s of SPEND) {
-      for (let n = 0; n < s.perMonth; n++) {
-        const seed = `${key}-${s.category}-${n}`;
-        const amount = (s.base / s.perMonth) + jitter(seed, s.spread);
-        if (amount < 5) continue;
-        const day = String(3 + ((n * 9 + s.category.length) % 24)).padStart(2, '0');
-        out.push(row({
-          id: `demo-${stableHash(seed)}`,
-          date: `${key}-${day}`,
-          amount: -Math.round(amount * 100) / 100,
-          description: s.label,
-          category: s.category,
-          sources: [s.source],
-          file: FILES[s.source] || '',
-          note: s.source === 'splitwise' ? 'Part personnelle (Splitwise)' : '',
-          matchAmount: s.source === 'splitwise' ? Math.round(amount * 200) / 100 : null,
-        }));
-      }
-    }
-  }
-
-  // The last two months' worth of rows nobody has classified yet.
-  for (let back = 1; back >= 0; back--) {
-    const key = monthKey(back);
-    for (const m of UNSORTED) {
-      for (let n = 0; n < m.per; n++) {
-        const seed = `${key}-${m.label}-${n}`;
-        out.push(row({
-          id: `demo-${stableHash(seed)}`,
-          date: `${key}-${String(4 + ((n * 7) % 22)).padStart(2, '0')}`,
-          amount: Math.round((m.amount + jitter(seed, 6)) * 100) / 100,
-          description: m.label, sources: [m.source], file: FILES[m.source] || '',
-        }));
-      }
-    }
-    for (const t of TRIP) {
-      for (let n = 0; n < t.per; n++) {
-        const seed = `${key}-${t.swCategory}-${n}`;
-        out.push(row({
-          id: `demo-${stableHash(seed)}`,
-          date: `${key}-${String(6 + ((n * 5) % 20)).padStart(2, '0')}`,
-          amount: Math.round((t.amount + jitter(seed, 20)) * 100) / 100,
-          description: `${t.swCategory} — ${TRIP_GROUP}`,
-          sources: ['splitwise'], swGroup: TRIP_GROUP, swCategory: t.swCategory,
-          file: `${TRIP_GROUP.toLowerCase().replace(/\s+/g, '-')}_export.csv`,
-        }));
-      }
-    }
-  }
-
-  // Recurring budgets, so the 12-month table opens with real "réel vs prévu"
-  // colouring rather than a wall of blank planning cells.
-  for (const s of SPEND) {
-    if (!s.base) continue;
-    out.push(row({
-      id: `demo-plan-${stableHash(s.category)}`, kind: 'planifie', freq: 'mensuel',
-      amount: s.base, description: s.category, category: s.category,
+    out.push(shared(key, '13', {
+      source: 'tangerine', label: 'INTERNET LEVANT', amount: -47.25,
+      group: ROOMMATES, swLabel: 'Facture Internet', swCategory: 'TV/Phone/Internet',
+      swDay: '17', memo: 'Category: Utilities',
     }));
+    out.push(shared(key, '19', {
+      source: 'cibc', label: 'RESTO PONANT', amount: -34.5, spread: 16,
+      group: TRIP, swLabel: 'Souper du vendredi', swCategory: 'Dining out',
+      swDay: '21',
+    }));
+
+    out.push(owed(key, '20', { group: TRIP, swLabel: 'Location du chalet', swCategory: 'Housing', amount: -128, spread: 40 }));
+    out.push(owed(key, '25', { group: ROOMMATES, swLabel: 'Produits ménagers', swCategory: 'Household supplies', amount: -19.47, spread: 8 }));
   }
 
   return out;
