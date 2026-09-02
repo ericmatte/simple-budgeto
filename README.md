@@ -9,8 +9,8 @@ you review everything in one table.
 app writes to a folder you pick (via the browser's File System Access API) and
 nothing is uploaded anywhere.
 
-🔗 **Live app:** https://ericmatte.github.io/simple-budgeto/
-🔍 **Try the demo (fake data, nothing saved):** https://ericmatte.github.io/simple-budgeto/?demo
+🔗 **Live app:** https://ericmatte.me/simple-budgeto/
+🔍 **Try the demo (fake data, nothing saved):** https://ericmatte.me/simple-budgeto/?demo
 
 ## Screenshots
 
@@ -64,7 +64,9 @@ every push and pull request** (see `.github/workflows/ci.yml`).
 ## Deployment
 
 The app is plain static files with no build step, served from the repository root
-by GitHub Pages (`main` branch, `/` folder).
+by GitHub Pages (`main` branch, `/` folder). The site uses the account-level
+custom domain `ericmatte.me`; `ericmatte.github.io/simple-budgeto/` redirects to
+it.
 
 Everything resolves through relative paths, so it also works unchanged from any
 sub-path or other static host (Cloudflare Pages, Netlify, …). The one runtime
