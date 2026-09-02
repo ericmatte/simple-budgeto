@@ -2,7 +2,10 @@
   "name": "simple-budgeto",
   "private": true,
   "type": "module",
-  "author": "Eric Matte <eric_matte@outlook.com>",
+  "author": {
+    "name": "Eric Matte",
+    "email": "eric_matte@outlook.com"
+  },
   "scripts": {
     "start": "node serve.js",
     "test": "node --test"
