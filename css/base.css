@@ -1,31 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
-/* Dark is the default palette; light is opt-in via data-theme="light" on
+/* Light is the default palette; dark is opt-in via data-theme="dark" on
    <html>, which index.html sets before first paint from the stored choice.
    Every colour in the app comes from here — the transaction rows mix their
    banding from --*-rgb at render time, so they follow the theme instead of
    baking in one of them. */
 :root {
-  --bg: #16131c;
-  --surface: #1f1b27;
-  --ink: #f2ecf4;
-  --sub: #988ca5;
-  --line: #332c40;
-  --row-line: #282232;
-  --acc: #ff7a52;
-  --green: #3ecf94;
-  --chip: #3a2c37;
-  --on-acc: #1a0f0b;
-  --shadow: rgba(0, 0, 0, .45);
-  --card-shadow: 0 6px 20px rgba(0, 0, 0, .28);
-  --panel: #2d2637;
-  --panel-ink: #f2ecf4;
-  --ink-rgb: 242, 236, 244;
-  --acc-rgb: 255, 122, 82;
-  color-scheme: dark;
-}
-
-:root[data-theme="light"] {
   --bg: #fff5ec;
   --surface: #ffffff;
   --ink: #2a1b3d;
@@ -43,6 +23,26 @@
   --ink-rgb: 42, 27, 61;
   --acc-rgb: 255, 92, 57;
   color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #16131c;
+  --surface: #1f1b27;
+  --ink: #f2ecf4;
+  --sub: #988ca5;
+  --line: #332c40;
+  --row-line: #282232;
+  --acc: #ff7a52;
+  --green: #3ecf94;
+  --chip: #3a2c37;
+  --on-acc: #1a0f0b;
+  --shadow: rgba(0, 0, 0, .45);
+  --card-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+  --panel: #2d2637;
+  --panel-ink: #f2ecf4;
+  --ink-rgb: 242, 236, 244;
+  --acc-rgb: 255, 122, 82;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
