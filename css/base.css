@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+/* Dark is the default palette; light is opt-in via data-theme="light" on
+   <html>, which index.html sets before first paint from the stored choice.
+   Every colour in the app comes from here — the transaction rows mix their
+   banding from --*-rgb at render time, so they follow the theme instead of
+   baking in one of them. */
+:root {
+  --bg: #16131c;
+  --surface: #1f1b27;
+  --ink: #f2ecf4;
+  --sub: #988ca5;
+  --line: #332c40;
+  --row-line: #282232;
+  --acc: #ff7a52;
+  --green: #3ecf94;
+  --chip: #3a2c37;
+  --on-acc: #1a0f0b;
+  --shadow: rgba(0, 0, 0, .45);
+  --card-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+  --panel: #2d2637;
+  --panel-ink: #f2ecf4;
+  --ink-rgb: 242, 236, 244;
+  --acc-rgb: 255, 122, 82;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #fff5ec;
+  --surface: #ffffff;
+  --ink: #2a1b3d;
+  --sub: #8a7a94;
+  --line: #f2ded0;
+  --row-line: #faf1e9;
+  --acc: #ff5c39;
+  --green: #2cb67d;
+  --chip: #ffe6d8;
+  --on-acc: #ffffff;
+  --shadow: rgba(42, 27, 61, .24);
+  --card-shadow: 0 6px 20px rgba(255, 92, 57, .09);
+  --panel: #2a1b3d;
+  --panel-ink: #fff5ec;
+  --ink-rgb: 42, 27, 61;
+  --acc-rgb: 255, 92, 57;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); }
+body {
+  color: var(--ink);
+  font-family: 'Nunito', system-ui, sans-serif;
+  padding-bottom: 56px;
+}
+input, select, textarea, button { font-family: inherit; font-size: inherit; }
+a { color: var(--acc); }
+a:hover { color: var(--ink); }
+
+@keyframes riseIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-state, .toast { animation: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+/* ---------- icons ----------
+   One stroke set for the whole app: every glyph inherits the colour of the
+   text it sits in, so nothing needs a second asset for the dark theme.
+   Inline-block rather than flex, so an icon can lead a line of text without
+   turning its container into a flex box — several of those clip with an
+   ellipsis, which only works on a plain inline flow. */
+.icon { flex: none; display: inline-block; vertical-align: -0.16em; }
+
+/* ---------- buttons ---------- */
+.btn { border: none; border-radius: 999px; font-weight: 800; cursor: pointer; padding: 11px 20px; font-size: 14px; white-space: nowrap; }
+.btn-primary { background: var(--acc); color: var(--on-acc); }
+.btn-ghost { background: none; color: var(--sub); border: 2px solid var(--line); }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.icon-btn {
+  flex: none; border: none; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 5px 7px; border-radius: 9px; line-height: 1; opacity: .5;
+}
+.icon-btn:hover { background: var(--chip); opacity: 1; }
+
+/* ---------- forms ---------- */
+textarea, input[type=text], input[type=date], input[type=number], select {
+  background: var(--bg); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; color: var(--ink); width: 100%;
+}
+textarea { font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; resize: vertical; }
+
+/* ---------- surfaces, banners, toast ---------- */
+.card { background: var(--surface); border-radius: 22px; padding: 18px clamp(12px, 2vw, 22px); box-shadow: var(--card-shadow); }
+
+.banner { border-radius: 16px; padding: 13px 16px; font-size: 13.5px; font-weight: 700; }
+.banner-info { background: var(--chip); color: var(--ink); }
+
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--panel); color: var(--panel-ink); padding: 13px 22px; border-radius: 999px;
+  font-weight: 800; font-size: 13px; z-index: 60; box-shadow: 0 10px 28px var(--shadow);
+  animation: pop .2s ease both; max-width: 92vw; text-align: center;
+}

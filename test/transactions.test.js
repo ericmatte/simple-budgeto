@@ -75,7 +75,7 @@ describe('transaction list stylesheet', () => {
   });
 
   test('no list rule reaches into the raw table', () => {
-    const css = readFileSync(new URL('../css/app.css', import.meta.url), 'utf8');
+    const css = readFileSync(new URL('../css/transactions.css', import.meta.url), 'utf8');
     const selectors = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/[^{}]+(?=\{)/g) || [];
     const leaking = selectors.flatMap(s => s.split(',')).map(s => s.trim()).filter(reachesNestedTable);
     assert.deepEqual(leaking, []);

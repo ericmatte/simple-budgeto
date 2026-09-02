@@ -46,9 +46,9 @@ window.addEventListener('toast', (e) => {
 // every edit. Snapshot the offsets and put them back on the rebuilt DOM.
 function withPreservedScroll(build) {
   const y = window.scrollY;
-  const lanes = [...root.querySelectorAll('.scrollx, .tbl-pane')].map(el => [el.scrollLeft, el.scrollTop]);
+  const lanes = [...root.querySelectorAll('.tx-raw-scroll')].map(el => [el.scrollLeft, el.scrollTop]);
   build();
-  const rebuilt = [...root.querySelectorAll('.scrollx, .tbl-pane')];
+  const rebuilt = [...root.querySelectorAll('.tx-raw-scroll')];
   if (rebuilt.length === lanes.length) {
     rebuilt.forEach((el, i) => { el.scrollLeft = lanes[i][0]; el.scrollTop = lanes[i][1]; });
   }

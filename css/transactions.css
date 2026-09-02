@@ -1,0 +1,178 @@
+/* ---------- source logos ----------
+   Sized off the row's text (never taller than a line of it) and set on a
+   light tile: two of the four official marks carry an opaque near-white
+   background of their own, which would otherwise read as a bright square
+   punched into the dark theme. */
+.src-logo {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 6px; overflow: hidden;
+  background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .07);
+  font-size: 11px; line-height: 1;
+}
+.src-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.src-logo-empty { background: var(--chip); box-shadow: none; }
+
+/* The tile clips its own contents, so the group dot rides on a wrapper and
+   sits just outside the corner. The ring is the page showing through, which
+   keeps the dot off whatever the logo puts in that corner. */
+.src-mark { position: relative; display: inline-flex; flex: none; }
+.src-dot {
+  position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px;
+  border-radius: 50%; box-shadow: 0 0 0 1.5px var(--surface);
+}
+
+.source-list { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* ---------- import ---------- */
+.import-sources { background: var(--bg); border-radius: 18px; padding: 16px; font-size: 13px; color: var(--sub); }
+.import-sources-title { font-weight: 800; color: var(--ink); margin-bottom: 10px; }
+.import-sources-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.import-source-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 6px; font-size: 12.5px; font-weight: 800; color: var(--ink); }
+
+.import-who-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* A Splitwise member name can be long enough to push the import button off
+   the row, so the select stops growing well before that. */
+.import-who-row select { width: auto; max-width: 260px; }
+
+.import-actions {
+  position: sticky; bottom: 0; z-index: 6; display: flex; gap: 10px; align-items: center;
+  padding: 12px 0 2px 0; margin-top: 2px; background: var(--surface); border-top: 1.5px solid var(--line);
+}
+
+/* ---------- the list ---------- */
+
+/* The card keeps no side padding of its own, so a row's band runs right to
+   its edges. What the card gave up, everything inside takes back: the
+   gutter below is the padding a card would have had, and the toolbar, the
+   outer cells and the empty states each carry it, so no text ends up against
+   an edge. */
+.tx-card {
+  display: flex; flex-direction: column; gap: 14px;
+  --tx-gutter: clamp(12px, 2vw, 22px);
+  padding-left: 0; padding-right: 0;
+}
+
+.tx-toolbar { position: sticky; top: 0; z-index: 10; background: var(--surface); padding: 14px var(--tx-gutter) 10px; border-bottom: 1px solid var(--line); }
+.tx-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.tx-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.tx-filters label { display: flex; align-items: center; gap: 6px; color: var(--sub); font-size: 12px; font-weight: 800; }
+.tx-filters input[type=date], .tx-filters input.tx-search { width: auto; border: 2px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); font-weight: 700; padding: 8px 12px; }
+.tx-filters input.tx-search { min-width: 190px; }
+.tx-filters input.tx-search::placeholder { color: var(--sub); opacity: .8; }
+.tx-filters input:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px rgba(var(--acc-rgb), .12); }
+
+.tx-nav { display: inline-flex; gap: 4px; }
+.tx-nav .btn { min-width: 34px; padding-left: 10px; padding-right: 10px; }
+
+.tx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+/* The column names stop right under the toolbar, which is itself pinned: the
+   offset is measured after every render because the filters wrap onto a
+   second line on a narrow screen. Nothing between the table and the page may
+   scroll on its own — an overflow container of its own would make the header
+   stick to that box instead of to the viewport.
+   Both rules stay on the list's own rows: the raw lines open as a table
+   inside this one, and a descendant rule would pin its column names to the
+   toolbar too. */
+.tx-table > thead > tr > th { text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--sub); padding: 8px; border-bottom: 1.5px solid var(--line); position: sticky; top: var(--tx-sticky-top, 0px); z-index: 8; background: var(--surface); }
+.tx-table > tbody > tr > td { padding: 7px 8px; border-bottom: 1px solid var(--row-line); }
+
+/* The gutter the card gave up, taken back by whichever cell sits against an
+   edge — the cell a colspan stretches across is both of them. */
+.tx-table > thead > tr > th:first-child, .tx-table > tbody > tr > td:first-child { padding-left: var(--tx-gutter); }
+.tx-table > thead > tr > th:last-child, .tx-table > tbody > tr > td:last-child { padding-right: var(--tx-gutter); }
+
+.tx-table .tx-month td { padding: 12px 8px 6px; color: var(--sub); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--surface); }
+
+.tx-table .tx-row { cursor: pointer; }
+
+/* One transaction is open at a time, and it wears the accent: a wash under a
+   bar. The bar is drawn on the outer cell rather than on the row, so it stops
+   at the padding edge and leaves the strip parting two rows alone. */
+.tx-table .tx-row.selected > td, .tx-table .tx-raw-row > td { background: rgba(var(--acc-rgb), .12); }
+.tx-table .tx-row.selected > td:first-child, .tx-table .tx-raw-row > td:first-child { box-shadow: inset 3px 0 0 var(--acc); }
+
+/* The banding only tells one row from the next, so it stays a plain tint of
+   the ink — the accent above has to stand out against it. */
+.tx-table .tx-row.alt:not(.selected) > td { background: rgba(var(--ink-rgb), .06); }
+.tx-table .tx-row:not(.selected):hover > td { background: rgba(var(--ink-rgb), .1); }
+
+/* Only the row steps back, never the source lines it carries: those read at
+   full strength. */
+.tx-table .tx-row.muted { opacity: .6; }
+
+/* A ticked row is struck through and nothing more — the mark is the reader's
+   own, and it is gone at the next reload. */
+.tx-table .tx-row.checked { text-decoration: line-through; }
+
+/* The hairline every row carries would part the open one from the source
+   lines it opened, and those are the same thing. */
+.tx-table .tx-row.selected > td { border-bottom: none; }
+.tx-table .tx-raw-row > td { padding: 0 8px 14px; }
+
+.preview-amount { width: 112px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; white-space: nowrap; }
+.preview-amount.neg { color: var(--ink); }
+.preview-amount.pos { color: var(--green); }
+
+.tx-sw-category { color: var(--sub); font-weight: 700; white-space: nowrap; }
+.tx-date-warn { display: inline-flex; vertical-align: -2px; margin-left: 6px; color: var(--acc); cursor: help; }
+
+/* ---------- the tick box / copy button ---------- */
+.tx-mark-cell { width: 1%; padding-right: 0 !important; }
+
+/* One slot, two marks stacked in it: the tick box is what the row shows at
+   rest, and the copy button takes its place under the pointer. */
+.tx-mark { position: relative; width: 24px; height: 24px; }
+.tx-mark > * { position: absolute; inset: 0; transition: opacity .12s ease, color .12s ease; }
+
+.tx-check { width: 15px; height: 15px; margin: auto; accent-color: var(--acc); cursor: pointer; }
+.tx-copy {
+  display: flex; align-items: center; justify-content: center; margin: 0;
+  border: none; border-radius: 8px; background: transparent; color: var(--sub);
+  opacity: 0; cursor: pointer;
+}
+.tx-copy:hover { color: var(--acc); background: var(--chip); }
+
+/* Whichever mark is hidden is also out of the pointer's reach: a button at
+   zero opacity still takes clicks, and it would take them from the tick box
+   sitting under it. */
+.tx-copy, .tx-row:hover .tx-check { opacity: 0; pointer-events: none; }
+.tx-row:hover .tx-copy, .tx-copy:focus-visible { opacity: 1; pointer-events: auto; }
+
+/* Focus outranks the pointer: whichever mark the keyboard is on has to be the
+   one on screen, and the one that answers. */
+.tx-check:focus-visible { opacity: 1; pointer-events: auto; z-index: 1; }
+
+/* ---------- the source lines a row opens ---------- */
+.tx-raw { padding-top: 12px; }
+.tx-raw-title { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); margin-bottom: 8px; }
+.tx-raw-warn { display: flex; align-items: center; gap: 6px; color: var(--acc); font-size: 12.5px; font-weight: 700; margin-bottom: 4px; }
+.tx-raw-file { margin-top: 10px; }
+.tx-raw-file > div { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.tx-raw-file .src-logo { width: 22px; height: 22px; }
+
+/* A Splitwise export carries one column per member, so the widest files scroll
+   sideways inside their own box rather than stretching the transaction list.
+   The cap is the card's own width, measured after every render: a cell in an
+   auto-laid table grows to whatever it holds, so a percentage would resolve
+   against a width the table has already given away. */
+.tx-raw-scroll {
+  margin-top: 6px; overflow-x: auto; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px;
+  max-width: calc(var(--tx-content-width, 100%) - 2 * var(--tx-gutter, 8px));
+}
+.tx-raw-table { border-collapse: collapse; font-size: 12.5px; }
+.tx-raw-table th, .tx-raw-table td { padding: 6px 11px; text-align: left; vertical-align: top; white-space: nowrap; }
+.tx-raw-table th { color: var(--sub); font-weight: 800; border-bottom: 1px solid var(--row-line); }
+.tx-raw-table td { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* ---------- nothing to show ---------- */
+.tx-raw-empty, .tx-no-results { color: var(--sub); font-weight: 700; padding: 16px 0; }
+.tx-no-results { padding-left: var(--tx-gutter); padding-right: var(--tx-gutter); }
+.tx-splitwise-files { color: var(--sub); font-size: 12px; margin: 5px 0 9px; }
+
+.empty-state { max-width: 600px; margin: 60px auto; text-align: center; padding: 0 24px; animation: riseIn .4s ease both; }
+.empty-title { font-size: clamp(22px, 4vw, 28px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 12px; }
+.empty-body { color: var(--sub); font-size: 15.5px; line-height: 1.6; margin-bottom: 24px; font-weight: 600; }
