@@ -3,7 +3,7 @@
 // "1 234,56", "$1,234.56", "(45.00)", "-45,00 CAD" → -45 / 1234.56 / -45
 export function parseAmount(raw) {
   if (raw == null || raw === '') return NaN;
-  let v = String(raw).trim().replace(/[\s $]|CAD|USD|EUR|€/gi, '');
+  let v = String(raw).trim().replace(/[\s\u00a0$]|CAD|USD|EUR|€/gi, '');
   const negative = /^\(.*\)$/.test(v) || v.startsWith('-');
   v = v.replace(/[()+-]/g, '');
   if (v.includes(',') && v.includes('.')) v = v.replace(/,/g, '');

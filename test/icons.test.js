@@ -43,7 +43,7 @@ describe('icon', () => {
 // and the user picks their own through emoji-mart). Everywhere else the app
 // draws its own chrome, and that chrome is SVG only.
 describe('app chrome', () => {
-  const PICTOGRAPH = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/u;
+  const PICTOGRAPH = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]|\u{FE0F}/u;
   const OWNS_EMOJI = ['js/categories.js', 'js/lib/emojiPicker.js'];
 
   function sources(dir, found = []) {
