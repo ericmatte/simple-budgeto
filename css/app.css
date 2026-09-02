@@ -1,0 +1,915 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+/* Dark is the default palette; light is opt-in via data-theme="light" on
+   <html>, which index.html sets before first paint from the stored choice.
+   Every colour in the app comes from here — the table's heat maps read
+   --*-rgb straight out of these variables at render time (see dashboard.js
+   readPalette) so they follow the theme instead of baking in one of them. */
+:root {
+  --bg: #16131c;
+  --surface: #1f1b27;
+  --surface-strong: #262130;
+  --ink: #f2ecf4;
+  --sub: #988ca5;
+  --line: #332c40;
+  --row-line: #282232;
+  --muted-num: #574d66;
+  --acc: #ff7a52;
+  --acc-soft: #a85a41;
+  /* Only ever used to confirm a deletion — the accent is too busy elsewhere
+     to also mean "this destroys something". */
+  --danger: #ff6b6b;
+  --on-danger: #2a0f0f;
+  --green: #3ecf94;
+  --green-soft: #2f8663;
+  --chip: #3a2c37;
+  --highlight: rgba(255, 122, 82, .13);
+  --track: rgba(242, 236, 244, .14);
+  --on-acc: #1a0f0b;
+  --shadow: rgba(0, 0, 0, .45);
+  --card-shadow: 0 6px 20px rgba(0, 0, 0, .28);
+  --panel: #2d2637;
+  --panel-ink: #f2ecf4;
+  --tab-on: #ff7a52;
+  --tab-on-ink: #1a0f0b;
+  --ink-rgb: 242, 236, 244;
+  --acc-rgb: 255, 122, 82;
+  --green-rgb: 62, 207, 148;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #fff5ec;
+  --surface: #ffffff;
+  --surface-strong: #fffaf6;
+  --ink: #2a1b3d;
+  --sub: #8a7a94;
+  --line: #f2ded0;
+  --row-line: #faf1e9;
+  --muted-num: #cfc4d6;
+  --acc: #ff5c39;
+  --acc-soft: #ffa38c;
+  --danger: #d8383d;
+  --on-danger: #ffffff;
+  --green: #2cb67d;
+  --green-soft: #8ad9b6;
+  --chip: #ffe6d8;
+  --highlight: rgba(255, 230, 216, .55);
+  --track: rgba(255, 245, 236, .18);
+  --on-acc: #ffffff;
+  --shadow: rgba(42, 27, 61, .24);
+  --card-shadow: 0 6px 20px rgba(255, 92, 57, .09);
+  --panel: #2a1b3d;
+  --panel-ink: #fff5ec;
+  --tab-on: #2a1b3d;
+  --tab-on-ink: #fff5ec;
+  --ink-rgb: 42, 27, 61;
+  --acc-rgb: 255, 92, 57;
+  --green-rgb: 44, 182, 125;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); }
+body {
+  color: var(--ink);
+  font-family: 'Nunito', system-ui, sans-serif;
+  padding-bottom: 56px;
+}
+input, select, textarea, button { font-family: inherit; font-size: inherit; }
+a { color: var(--acc); }
+a:hover { color: var(--ink); }
+
+@keyframes riseIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.view-enter { animation: viewIn .26s cubic-bezier(.22,.7,.3,1) both; }
+
+/* ---------- tab transition ----------
+   Applied by app.js on a tab-to-tab change only, sliding along the direction
+   of travel in the tab bar. The outgoing copy is laid over the incoming one
+   for the length of the animation; `.view-swapping` clips it so the slide
+   can't push a horizontal scrollbar onto the page.
+   `both` holds the final keyframe, and even `transform: none` computes to an
+   identity matrix while an animation fills — which is enough to make the
+   element the containing block of every `position: fixed` popup inside it.
+   These classes are therefore taken back off once they have played (see
+   lib/animate.js), never left on the element. */
+.view-swapping { position: relative; overflow: hidden; }
+.view-ghost { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+@keyframes slideOutLeft   { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-26px); } }
+@keyframes slideOutRight  { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(26px); } }
+@keyframes slideInRight   { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+@keyframes slideInLeft    { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+
+.view-out-forward { animation: slideOutLeft  .19s ease-in both; }
+.view-in-forward  { animation: slideInRight  .24s cubic-bezier(.22,.7,.3,1) both; }
+.view-out-back    { animation: slideOutRight .19s ease-in both; }
+.view-in-back     { animation: slideInLeft   .24s cubic-bezier(.22,.7,.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .view-enter, .empty-state, .toast, .emoji-picker-wrap,
+  .view-out-forward, .view-in-forward, .view-out-back, .view-in-back { animation: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+.scrollx { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.scrollx::-webkit-scrollbar { height: 9px; }
+.scrollx::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+
+/* ---------- layout ---------- */
+/* Two tiers instead of one long row, where the app name, the budget, the two
+   timestamps and every button carried the same weight. The top tier says what
+   this is and holds the app-wide actions; the bottom one says which budget is
+   open and how fresh its data is. */
+.app-header {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 18px clamp(14px, 3vw, 30px) 12px clamp(14px, 3vw, 30px);
+}
+.app-header-top, .app-header-context {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap;
+}
+.app-title { font-size: clamp(20px, 3vw, 27px); font-weight: 900; letter-spacing: -0.025em; line-height: 1; }
+
+/* The switcher names the open budget, so nothing else has to: it is styled as
+   the budget's identity rather than as a form control. It is also the only
+   element on its row that may give ground — without a cap a long folder name
+   takes the whole row and pushes the timestamps off it.
+   The negative margin is that control's own padding and border read back, so
+   the budget name starts on the same vertical as the app title above it. */
+.app-budget { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 0 1 auto; margin-left: -10px; }
+.app-budget-switcher {
+  width: auto; max-width: min(280px, 62vw); flex: 0 1 auto; min-width: 0;
+  background: var(--surface); border: 2px solid transparent; border-radius: 12px;
+  padding: 6px 8px; font-size: 15px; font-weight: 800; color: var(--ink); cursor: pointer;
+}
+.app-budget-switcher:hover { border-color: var(--line); }
+.app-budget-label {
+  padding: 8px 10px; font-size: 15px; font-weight: 800; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* The stamps stack: the cashback total reads as a second line under the
+   session notice, not as something pushed to the far end of the row. */
+.app-header-context { flex-direction: column; align-items: flex-start; gap: 2px; }
+.app-stamps { display: flex; gap: 4px 14px; flex-wrap: wrap; font-size: 11.5px; font-weight: 700; color: var(--sub); }
+.app-cashback { color: var(--green); }
+.app-cashback:empty { display: none; }
+.app-stamps span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: default; }
+.app-header-actions { display: flex; gap: 8px; align-items: center; flex: none; }
+.app-header-actions .btn { flex: none; text-decoration: none; }
+
+.tabs {
+  display: flex; gap: 6px; padding: 0 clamp(14px, 3vw, 30px) 16px clamp(14px, 3vw, 30px); flex-wrap: wrap;
+}
+.tab {
+  background: none; border: none; cursor: pointer; padding: 9px 18px; border-radius: 999px;
+  font-weight: 800; font-size: 14px; color: var(--sub);
+  transition: background-color .18s ease, color .18s ease;
+}
+.tab:hover:not(.active) { background: var(--chip); color: var(--ink); }
+.tab.active { background: var(--tab-on); color: var(--tab-on-ink); }
+
+.main { padding: 0 clamp(14px, 3vw, 30px); }
+/* The views render their sections as direct children of #view (not .main,
+   which only ever wraps this single element) — the gap has to live here. */
+#view { display: flex; flex-direction: column; gap: 24px; }
+
+.card { background: var(--surface); border-radius: 22px; padding: 18px clamp(12px, 2vw, 22px); box-shadow: var(--card-shadow); }
+
+/* ---------- icons ----------
+   One stroke set for the whole app: every glyph inherits the colour of the
+   text it sits in, so nothing needs a second asset for the dark theme. */
+.icon { flex: none; display: inline-block; vertical-align: -0.16em; }
+/* Inline-block rather than flex, so an icon can lead a line of text without
+   turning its container into a flex box — several of those clip with an
+   ellipsis, which only works on a plain inline flow. */
+.icon-lead { margin-right: 6px; }
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+
+/* ---------- buttons ---------- */
+.btn { border: none; border-radius: 999px; font-weight: 800; cursor: pointer; padding: 11px 20px; font-size: 14px; white-space: nowrap; }
+.btn-primary { background: var(--acc); color: var(--on-acc); }
+.btn-danger { background: var(--danger); color: var(--on-danger); }
+.btn-chip { background: var(--chip); color: var(--ink); }
+.btn-ghost { background: none; color: var(--sub); border: 2px solid var(--line); }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ---------- forms ---------- */
+.field-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); margin-bottom: 6px; display: block; }
+textarea, input[type=text], input[type=date], input[type=number], select {
+  background: var(--bg); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; color: var(--ink); width: 100%;
+}
+textarea { font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; resize: vertical; }
+
+/* ---------- banners / toast ---------- */
+.banner { border-radius: 16px; padding: 13px 16px; font-size: 13.5px; font-weight: 700; }
+.banner-warn { background: rgba(var(--acc-rgb),.12); color: var(--acc); }
+.banner-ok { background: rgba(var(--green-rgb),.12); color: var(--green); }
+.banner-info { background: var(--chip); color: var(--ink); }
+
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--panel); color: var(--panel-ink); padding: 13px 22px; border-radius: 999px;
+  font-weight: 800; font-size: 13px; z-index: 60; box-shadow: 0 10px 28px var(--shadow);
+  animation: pop .2s ease both; max-width: 92vw; text-align: center;
+}
+
+/* ---------- badges ---------- */
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--chip); color: var(--ink); text-transform: uppercase; letter-spacing: .04em; }
+.badge-source { background: var(--panel); color: var(--panel-ink); }
+
+/* ---------- KPI bar ---------- */
+.kpi-bar { background: var(--panel); color: var(--panel-ink); border-radius: 20px; padding: 16px clamp(14px, 2vw, 22px); display: flex; flex-wrap: wrap; gap: 14px 30px; align-items: center; }
+.kpi { display: flex; flex-direction: column; gap: 2px; min-width: 132px; }
+.kpi-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; opacity: .55; }
+.kpi-value { font-size: clamp(20px, 2.4vw, 26px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kpi-sub { font-size: 12px; font-weight: 700; opacity: .7; }
+
+/* ---------- 12-month table header bar ---------- */
+.tbl-head-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.tbl-head-bar-title { flex: 1 1 auto; min-width: 0; }
+.tbl-range { font-size: 12.5px; font-weight: 700; color: var(--sub); text-transform: capitalize; margin-top: 2px; }
+.band-nav {
+  flex: none; width: 38px; height: 38px; border-radius: 14px; border: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--chip); color: var(--ink); cursor: pointer;
+}
+.band-nav:hover:not(:disabled) { background: var(--acc-soft); }
+.band-nav:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ---------- table ---------- */
+/* The 12-month table scrolls inside its own pane instead of dragging the
+   whole page sideways. A wrapper with `overflow-x: auto` forces overflow-y
+   to `auto` too (the spec refuses to leave one axis visible), which would
+   normally kill the header's stickiness — so the pane is given a height of
+   its own and becomes the scrollport for BOTH axes. Every sticky offset
+   below is then relative to this pane: header to its top, footer to its
+   bottom, label column to its left. */
+.tbl-pane {
+  overflow: auto;
+  max-height: calc(100vh - 150px);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.tbl-pane::-webkit-scrollbar { width: 9px; height: 9px; }
+.tbl-pane::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+.tbl { min-width: 940px; }
+.tbl-row { display: grid; grid-template-columns: 180px repeat(12, minmax(52px, 1fr)) 74px 74px 66px; gap: 0 2px; align-items: stretch; border-top: 1px solid var(--line); }
+/* user-select:none keeps a click-drag on the label text from starting a text
+   selection instead of the native HTML5 drag gesture. */
+.tbl-row[data-drag-type] { cursor: grab; user-select: none; -webkit-user-drag: element; }
+.tbl-row[data-drag-type]:active { cursor: grabbing; }
+.tbl-row.dragging { opacity: .35; }
+.tbl-row.drag-over-top { box-shadow: inset 0 2px 0 0 var(--acc); }
+.tbl-row.drag-over-bottom { box-shadow: inset 0 -2px 0 0 var(--acc); }
+/* "drop into this group" — the whole header lights up rather than growing an
+   edge line, since the row isn't a position in a list, it *is* the target. */
+.tbl-row.drag-over-into { box-shadow: inset 0 0 0 2px var(--acc); border-radius: 8px; }
+
+/* The drag preview is rasterized by the browser from a real element, so it
+   must be on-screen-renderable and free of sticky/transform trickery — hence
+   a plain opaque pill parked off-viewport, removed on the next tick. */
+.drag-ghost {
+  position: fixed; top: 0; left: -9999px; pointer-events: none; z-index: 9999;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel); color: var(--panel-ink); border-radius: 999px;
+  padding: 9px 16px; font-size: 13px; font-weight: 800; white-space: nowrap;
+}
+
+/* Drag handle: always occupies its slot (so hovering a row never nudges the
+   text sideways), only inked in on hover. */
+.drag-grip {
+  flex: none; width: 9px; height: 14px; cursor: grab; visibility: hidden;
+  background-image: radial-gradient(circle, var(--sub) 1.1px, transparent 1.2px);
+  background-size: 4px 4px; opacity: .65;
+}
+.tbl-row:hover .drag-grip { visibility: visible; }
+.tbl-row.dragging .drag-grip, .tbl-row:active .drag-grip { cursor: grabbing; }
+.tbl-emoji-btn {
+  width: 20px; display: inline-block; text-align: center; cursor: pointer;
+  border: none; background: none; border-radius: 6px; padding: 2px; margin: -2px;
+}
+.tbl-emoji-btn:hover { background: var(--chip); }
+.tbl-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; padding: 2px 0; }
+.tbl-row-title:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+
+/* ---------- inline editing ----------
+   Every inline editor is absolutely positioned over the box it replaces and
+   sized from that box's measured rect, so entering and leaving edit mode is
+   invisible to layout: no row grows, no table reflows, nothing jumps. */
+.inline-edit {
+  position: absolute; z-index: 5; margin: 0;
+  border: none; border-radius: 6px; background: var(--surface); color: var(--ink);
+  box-shadow: 0 0 0 2px var(--acc-soft); outline: none;
+  font: inherit; user-select: text; -webkit-user-drag: none;
+}
+.inline-rename { padding: 0 6px; font-size: 13px; font-weight: 700; }
+.tbl-row.section .inline-rename { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--acc); }
+.plan-cell-input { padding: 0 4px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- emoji picker (emoji-mart web component, styles itself via its
+   own shadow DOM — this just positions the popup) ---------- */
+.emoji-picker-wrap { position: fixed; z-index: 1000; animation: pop .12s ease-out; }
+.tbl-row.section { border-top: 1.5px solid var(--line); position: sticky; z-index: 2; background: var(--surface); }
+/* A group only carries a mark once one is picked, so nothing shifts for the groups without one. */
+.tbl-group-emoji { font-size: 13px; line-height: 1; margin-right: 1px; }
+.tbl-row.strong { background: var(--surface-strong); border-top: 1.5px solid var(--line); }
+.tbl-label { position: sticky; left: 0; background: var(--surface); display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; padding: 8px 10px 8px 0; }
+.tbl-cell { position: relative; display: flex; align-items: center; justify-content: flex-end; text-align: right; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; padding: 7px 5px; white-space: nowrap; }
+
+/* Pinned against .tbl-pane's scrollport, stacked: years, then month names,
+   then each group's section row as it scrolls up under them. */
+.tbl-year-row { position: sticky; top: 0; z-index: 4; height: 22px; background: var(--surface); border-top: none; }
+.tbl-year {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .14em; color: var(--sub);
+  border-bottom: 2px solid var(--line);
+}
+.tbl-head-row { position: sticky; top: 22px; z-index: 3; height: 34px; background: var(--surface); }
+.tbl-row.section { top: 56px; }
+.tbl-foot { position: sticky; bottom: 0; z-index: 3; background: var(--surface); }
+
+/* ---------- 12-month table: click-to-plan cells ---------- */
+/* Two stacked numbers (real, then planned in pale gray below) instead of the
+   old single line — clicking edits the planned figure only; the real one
+   above stays computed/read-only. */
+.tbl-cell.plan-cell { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px; position: relative; cursor: text; padding-bottom: 5px !important; }
+.plan-real { font-variant-numeric: tabular-nums; line-height: 15px; }
+/* Standing in for a missing actual, so it reads as an estimate rather than
+   as money that was really moved. */
+.plan-real.is-estimate { font-style: italic; opacity: .8; }
+/* Rendered even when there is no budget (min-height reserves its line) so
+   every category row is exactly as tall as every other one. */
+.plan-planned { min-height: 13px; line-height: 13px; font-size: 10px; font-weight: 700; color: var(--sub); font-variant-numeric: tabular-nums; }
+.plan-cell:hover .plan-planned:empty::after { content: '+'; color: var(--acc-soft); font-weight: 900; }
+
+/* Fill handle, on the cell's bottom-right corner like a spreadsheet's.
+   Bigger hit area than its painted size so it stays grabbable in a 52px column. */
+.plan-fill-dot {
+  position: absolute; right: 0; bottom: 0; width: 8px; height: 8px;
+  transform: translate(50%, 50%); border-radius: 50%; background: var(--acc);
+  box-shadow: 0 0 0 2px var(--surface); opacity: 0; cursor: crosshair; z-index: 4;
+}
+.plan-fill-dot::after { content: ''; position: absolute; inset: -6px; }
+.plan-cell:hover .plan-fill-dot, .plan-cell.filling .plan-fill-dot { opacity: 1; }
+.plan-cell.plan-fill-target { background: rgba(var(--acc-rgb),.3) !important; }
+
+/* ---------- source logos ----------
+   Sized off the row's text (never taller than a line of it) and set on a
+   light tile: two of the four official marks carry an opaque near-white
+   background of their own, which would otherwise read as a bright square
+   punched into the dark theme. */
+.src-logo {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 6px; overflow: hidden;
+  background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .07);
+  font-size: 11px; line-height: 1;
+}
+.src-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.src-logo-empty { background: var(--chip); box-shadow: none; }
+/* The tile clips its own contents, so the group dot rides on a wrapper and
+   sits just outside the corner. The ring is the page showing through, which
+   keeps the dot off whatever the logo puts in that corner. */
+.src-mark { position: relative; display: inline-flex; flex: none; }
+.src-dot {
+  position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px;
+  border-radius: 50%; box-shadow: 0 0 0 1.5px var(--surface);
+}
+
+.src-cell { display: inline-flex; align-items: center; gap: 3px; border-radius: 8px; padding: 2px; cursor: help; }
+.src-cell:hover, .src-cell:focus-visible { background: var(--chip); outline: none; }
+/* Fixed, so the table's scroll pane can't clip it; placed by importer.js. */
+.src-tip {
+  display: none; position: fixed; z-index: 80; width: min(560px, 92vw);
+  background: var(--panel); color: var(--panel-ink); border-radius: 14px;
+  padding: 10px 12px; box-shadow: 0 14px 34px var(--shadow);
+  cursor: default; animation: pop .12s ease-out;
+}
+.src-tip.open { display: block; }
+.src-tip-block + .src-tip-block { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.src-tip-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.src-tip-file { font-size: 12.5px; font-weight: 800; color: var(--acc); text-decoration: underline; text-underline-offset: 2px; }
+.src-tip-line { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .55; }
+.src-tip-raw { font-family: ui-monospace, monospace; font-size: 11.5px; line-height: 1.55; opacity: .85; white-space: pre-wrap; word-break: break-word; }
+
+/* ---------- importer ---------- */
+.import-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.file-report { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--bg); border: 1.5px solid var(--line); font-size: 13px; font-weight: 700; }
+.file-report.error { border-color: var(--acc); color: var(--acc); }
+
+.import-sources { background: var(--bg); border-radius: 18px; padding: 16px; font-size: 13px; color: var(--sub); }
+.import-sources-title { font-weight: 800; color: var(--ink); margin-bottom: 10px; }
+.import-sources-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.import-source-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 6px; font-size: 12.5px; font-weight: 800; color: var(--ink); }
+.import-sources-note { margin-top: 10px; line-height: 1.6; }
+
+.import-preview { display: flex; flex-direction: column; gap: 14px; }
+.import-title { font-size: 18px; font-weight: 800; }
+.import-sub { font-size: 13px; font-weight: 700; color: var(--sub); margin-top: 3px; }
+.import-files { display: flex; flex-wrap: wrap; gap: 8px; }
+.import-file { display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 999px; background: var(--bg); border: 1.5px solid var(--line); font-size: 12.5px; }
+.import-file-name { font-weight: 800; }
+.import-file-meta { color: var(--sub); font-weight: 700; }
+.import-add { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.import-add-paste { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 10px; }
+.import-add-paste[hidden] { display: none; }
+.import-add-paste textarea { min-height: 120px; width: 100%; }
+.import-file.error { border-color: var(--acc); }
+.import-file.error .import-file-meta { color: var(--acc); }
+.import-empty { color: var(--sub); font-weight: 700; }
+
+.import-who { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.import-who-title { font-size: 14px; font-weight: 800; }
+.import-who-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.import-who-file { font-size: 13px; font-weight: 800; min-width: 160px; }
+.import-who-files { font-size: 12px; font-weight: 700; color: var(--sub); margin-top: -4px; }
+/* A Splitwise member name can be long enough to push the import button off
+   the row, so the select stops growing well before that. */
+.import-who-row select { width: auto; max-width: 260px; }
+
+.import-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.import-check-all { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.import-pill { background: var(--chip); color: var(--ink); border-radius: 999px; padding: 2px 10px; font-size: 11.5px; font-weight: 800; }
+
+.import-actions {
+  position: sticky; bottom: 0; z-index: 6; display: flex; gap: 10px; align-items: center;
+  padding: 12px 0 2px 0; margin-top: 2px; background: var(--surface); border-top: 1.5px solid var(--line);
+}
+
+/* ---------- collapsible drawer ----------
+   0fr -> 1fr on a grid row is the one height animation that doesn't need a
+   hardcoded max-height, so the drawer opens at its true size whether it holds
+   three rows or three hundred. */
+.collapse-head {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 14px;
+  padding: 11px 14px; font-size: 13.5px; font-weight: 800; color: var(--ink); cursor: pointer;
+}
+.collapse-head:hover { border-color: var(--acc-soft); }
+.collapse-caret { color: var(--sub); font-size: 11px; transition: transform .22s ease; }
+.collapse.open .collapse-caret { transform: rotate(90deg); }
+.collapse-hint { font-size: 11.5px; font-weight: 700; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collapse-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s cubic-bezier(.22,.7,.3,1); }
+.collapse.open .collapse-body { grid-template-rows: 1fr; }
+.collapse-inner { overflow: hidden; }
+
+/* ---------- import preview table ---------- */
+.preview-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+.preview-table td { padding: 6px 8px; border-bottom: 1px solid var(--row-line); vertical-align: middle; }
+.preview-cell-check { width: 34px; }
+.preview-cell-source { width: 62px; }
+.preview-cell-cat { width: 210px; }
+.preview-cell-note { width: 150px; }
+.preview-cell-note input { padding: 6px 10px; font-size: 12.5px; }
+.preview-desc { font-weight: 700; }
+.preview-reason { width: 230px; font-size: 11.5px; color: var(--sub); font-weight: 700; }
+.preview-amount { width: 112px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; white-space: nowrap; }
+.preview-amount.neg { color: var(--ink); }
+.preview-amount.pos { color: var(--green); }
+
+.preview-date td { border-bottom: none; padding-top: 16px; }
+.preview-table tbody:first-child .preview-date td { padding-top: 4px; }
+.preview-date-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1.5px solid var(--line); padding-bottom: 5px; }
+.preview-date-label { font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+/* French dates are sentence case — `text-transform: capitalize` would give
+   "Mardi 11 Août 2026". */
+.preview-date-label::first-letter { text-transform: uppercase; }
+.preview-date-total { font-size: 11.5px; font-weight: 700; color: var(--sub); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.preview-row:hover { background: var(--surface-strong); }
+.preview-row.error { background: rgba(var(--acc-rgb),.08); }
+/* A row from the "mises de côté" drawer the user ticked back in: it is about
+   to be imported like any other, and says so. */
+.preview-row.will-import { background: rgba(var(--acc-rgb),.1); }
+.preview-row.will-import .preview-reason { color: var(--acc); }
+.source-list { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* ---------- transactions view ---------- */
+.tx-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+/* The card keeps no side padding of its own, so a row's band runs right to
+   its edges. What the card gave up, everything inside takes back: the
+   gutter below is the padding a card would have had, and the toolbar, the
+   outer cells and the empty states each carry it, so no text ends up against
+   an edge. */
+.tx-card {
+  display: flex; flex-direction: column; gap: 14px;
+  --tx-gutter: clamp(12px, 2vw, 22px);
+  padding-left: 0; padding-right: 0;
+}
+.tx-toolbar { position: sticky; top: 0; z-index: 10; background: var(--surface); padding: 14px var(--tx-gutter) 10px; border-bottom: 1px solid var(--line); }
+.tx-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.tx-filters label { display: flex; align-items: center; gap: 6px; color: var(--sub); font-size: 12px; font-weight: 800; }
+.tx-filters input[type=date], .tx-filters input.tx-search { width: auto; border: 2px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); font-weight: 700; padding: 8px 12px; }
+.tx-filters input.tx-search { min-width: 190px; }
+.tx-filters input.tx-search::placeholder { color: var(--sub); opacity: .8; }
+.tx-filters input:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px rgba(var(--acc-rgb), .12); }
+.tx-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* The column names stop right under the toolbar, which is itself pinned: the
+   offset is measured after every render because the filters wrap onto a
+   second line on a narrow screen. Nothing between the table and the page may
+   scroll on its own — an overflow container of its own would make the header
+   stick to that box instead of to the viewport.
+   Both rules stay on the list's own rows: the raw lines open as a table
+   inside this one, and a descendant rule would pin its column names to the
+   toolbar too. */
+.tx-table > thead > tr > th { text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--sub); padding: 8px; border-bottom: 1.5px solid var(--line); position: sticky; top: var(--tx-sticky-top, 0px); z-index: 8; background: var(--surface); }
+.tx-table > tbody > tr > td { padding: 7px 8px; border-bottom: 1px solid var(--row-line); }
+/* The gutter the card gave up, taken back by whichever cell sits against an
+   edge — the cell a colspan stretches across is both of them. */
+.tx-table > thead > tr > th:first-child, .tx-table > tbody > tr > td:first-child { padding-left: var(--tx-gutter); }
+.tx-table > thead > tr > th:last-child, .tx-table > tbody > tr > td:last-child { padding-right: var(--tx-gutter); }
+.tx-table .tx-month td { padding: 12px 8px 6px; color: var(--sub); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--surface); }
+.tx-table .tx-row { cursor: pointer; }
+/* One transaction is open at a time, and it wears the accent: a wash under a
+   bar. The bar is drawn on the outer cell rather than on the row, so it stops
+   at the padding edge and leaves the strip parting two rows alone. */
+.tx-table .tx-row.selected > td, .tx-table .tx-raw-row > td { background: rgba(var(--acc-rgb), .12); }
+.tx-table .tx-row.selected > td:first-child, .tx-table .tx-raw-row > td:first-child { box-shadow: inset 3px 0 0 var(--acc); }
+/* The banding only tells one row from the next, so it stays a plain tint of
+   the ink — the accent above has to stand out against it. */
+.tx-table .tx-row.alt:not(.selected) > td { background: rgba(var(--ink-rgb), .06); }
+.tx-table .tx-row:not(.selected):hover > td { background: rgba(var(--ink-rgb), .1); }
+/* Only the row steps back, never the source lines it carries: those read at
+   full strength. */
+.tx-table .tx-row.muted { opacity: .6; }
+/* The hairline every row carries would part the open one from the source
+   lines it opened, and those are the same thing. */
+.tx-table .tx-row.selected > td { border-bottom: none; }
+.tx-table .tx-raw-row > td { padding: 0 8px 14px; }
+.tx-raw { padding-top: 12px; }
+.tx-mark-cell { width: 1%; padding-right: 0 !important; }
+/* One slot, two marks stacked in it: the tick box is what the row shows at
+   rest, and the copy button takes its place under the pointer. */
+.tx-mark { position: relative; width: 24px; height: 24px; }
+.tx-mark > * { position: absolute; inset: 0; transition: opacity .12s ease, color .12s ease; }
+.tx-check { width: 15px; height: 15px; margin: auto; accent-color: var(--acc); cursor: pointer; }
+.tx-copy {
+  display: flex; align-items: center; justify-content: center; margin: 0;
+  border: none; border-radius: 8px; background: transparent; color: var(--sub);
+  opacity: 0; cursor: pointer;
+}
+/* Whichever mark is hidden is also out of the pointer's reach: a button at
+   zero opacity still takes clicks, and it would take them from the tick box
+   sitting under it. */
+.tx-copy, .tx-row:hover .tx-check { opacity: 0; pointer-events: none; }
+.tx-row:hover .tx-copy, .tx-copy:focus-visible { opacity: 1; pointer-events: auto; }
+/* Focus outranks the pointer: whichever mark the keyboard is on has to be the
+   one on screen, and the one that answers. */
+.tx-check:focus-visible { opacity: 1; pointer-events: auto; z-index: 1; }
+.tx-copy:hover { color: var(--acc); background: var(--chip); }
+/* A ticked row is struck through and nothing more — the mark is the reader's
+   own, and it is gone at the next reload. */
+.tx-table .tx-row.checked { text-decoration: line-through; }
+.tx-nav { display: inline-flex; gap: 4px; }
+.tx-nav .btn { min-width: 34px; padding-left: 10px; padding-right: 10px; }
+.tx-sw-category { color: var(--sub); font-weight: 700; white-space: nowrap; }
+.tx-date-warn { display: inline-flex; vertical-align: -2px; margin-left: 6px; color: var(--acc); cursor: help; }
+.tx-raw-warn { display: flex; align-items: center; gap: 6px; color: var(--acc); font-size: 12.5px; font-weight: 700; margin-bottom: 4px; }
+.tx-raw-title { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); margin-bottom: 8px; }
+.tx-raw-file { margin-top: 10px; }
+.tx-raw-file > div { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.tx-raw-file .src-logo { width: 22px; height: 22px; }
+/* A Splitwise export carries one column per member, so the widest files scroll
+   sideways inside their own box rather than stretching the transaction list.
+   The cap is the card's own width, measured after every render: a cell in an
+   auto-laid table grows to whatever it holds, so a percentage would resolve
+   against a width the table has already given away. */
+.tx-raw-scroll {
+  margin-top: 6px; overflow-x: auto; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px;
+  max-width: calc(var(--tx-content-width, 100%) - 2 * var(--tx-gutter, 8px));
+}
+.tx-raw-table { border-collapse: collapse; font-size: 12.5px; }
+.tx-raw-table th, .tx-raw-table td { padding: 6px 11px; text-align: left; vertical-align: top; white-space: nowrap; }
+.tx-raw-table th { color: var(--sub); font-weight: 800; border-bottom: 1px solid var(--row-line); }
+.tx-raw-table td { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.tx-raw-empty, .tx-no-results { color: var(--sub); font-weight: 700; padding: 16px 0; }
+.tx-no-results { padding-left: var(--tx-gutter); padding-right: var(--tx-gutter); }
+.tx-splitwise-files { color: var(--sub); font-size: 12px; margin: 5px 0 9px; }
+.tx-table tr.excluded { opacity: .5; }
+.tx-bulkbar { display: flex; align-items: center; gap: 10px; background: var(--chip); border-radius: 14px; padding: 8px 12px; flex-wrap: wrap; }
+.tx-bulkbar-count { font-size: 13px; font-weight: 800; color: var(--acc); margin-right: 2px; }
+
+.empty-icon { color: var(--acc); line-height: 0; }
+.empty-state { max-width: 600px; margin: 60px auto; text-align: center; padding: 0 24px; animation: riseIn .4s ease both; }
+.empty-title { font-size: clamp(22px, 4vw, 28px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 12px; }
+.empty-body { color: var(--sub); font-size: 15.5px; line-height: 1.6; margin-bottom: 24px; font-weight: 600; }
+
+.checkbox-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--sub); }
+
+/* ---------- budget start month ---------- */
+.start-month { display: flex; align-items: center; gap: 8px; flex: none; }
+.start-month > span { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); }
+.start-month input[type=month] { width: auto; padding: 7px 10px; font-size: 12.5px; font-weight: 700; }
+
+/* ---------- categories admin page ---------- */
+.cat-admin-group { border: 1.5px solid var(--line); border-radius: 16px; overflow: hidden; }
+.cat-admin-group-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg); }
+.cat-admin-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 16px;
+  border-top: 1px solid var(--line); position: relative;
+}
+.cat-admin-row:hover { background: var(--surface-strong); }
+.cat-admin-title {
+  font-size: 13.5px; font-weight: 800; cursor: text; padding: 2px 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cat-admin-group-head .cat-admin-title { font-size: 14px; font-weight: 900; }
+.cat-admin-title:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+.cat-admin-count { font-size: 11.5px; font-weight: 700; color: var(--sub); white-space: nowrap; }
+.cat-admin-empty { padding: 12px 16px; font-size: 12.5px; font-weight: 600; color: var(--sub); border-top: 1px solid var(--line); }
+.cat-admin-move { width: auto; max-width: 170px; padding: 5px 8px; font-size: 12px; font-weight: 700; border-radius: 10px; }
+.cat-admin-new { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.cat-admin-new input { flex: 1 1 auto; }
+.icon-btn {
+  flex: none; border: none; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 5px 7px; border-radius: 9px; line-height: 1; opacity: .5;
+}
+.icon-btn:hover { background: var(--chip); opacity: 1; }
+.theme-toggle { padding: 7px 9px; opacity: .75; }
+
+/* ---------- category palette ----------
+   One dialog, always the same size, always in the same place. The dropdown it
+   replaces was anchored to its row: in a table of hundreds of lines it opened
+   somewhere new every time, as narrow as whatever cell it hung off, and fell
+   off the bottom of the window on the last rows. */
+.palette-overlay {
+  position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45);
+  display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px;
+  backdrop-filter: blur(2px);
+}
+.palette-overlay[hidden] { display: none; }
+.palette {
+  width: min(520px, 100%); max-height: 66vh; display: flex; flex-direction: column;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 20px;
+  box-shadow: 0 24px 60px var(--shadow);
+  /* `clip` rather than `hidden`: hidden makes a scroll container, and focusing
+     the search box inside one scrolls it — so any stray overflow slides the
+     whole dialog sideways with no scrollbar to show for it. */
+  overflow: hidden;
+  overflow: clip;
+}
+/* Everything in here lines up on one inset: the title, the search box, the
+   row labels and the footer hints all start at the same x. Rows carry their
+   own padding for the hover background, so the list is inset by the
+   difference. */
+.palette { --pal-pad: 18px; --pal-row-pad: 12px; }
+.palette-title { padding: var(--pal-pad) var(--pal-pad) 0; font-size: 12.5px; font-weight: 700; color: var(--sub); }
+.palette-title b { color: var(--ink); }
+/* Tagged `input.` on purpose: `input[type=text]` in the forms block is the
+   more specific selector, and its `width: 100%` is what was making this box
+   100% of the dialog *plus* its own margins — 36px wider than the dialog. The
+   overflow then scrolled the whole palette sideways. A stretched flex item
+   fills the row minus its margins on its own. */
+input.palette-search { margin: 12px var(--pal-pad) 4px; width: auto; }
+.palette-search:focus { outline: none; border-color: var(--acc); }
+.palette-list {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip;
+  padding: 4px calc(var(--pal-pad) - var(--pal-row-pad)) var(--pal-pad);
+}
+.palette-heading {
+  font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--sub); padding: 14px var(--pal-row-pad) 5px;
+}
+.palette-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; border-radius: 12px; padding: 10px var(--pal-row-pad);
+  font-size: 14px; font-weight: 800; color: var(--ink); cursor: pointer;
+}
+.palette-item[data-on="1"] { background: var(--chip); }
+.palette-item.create { color: var(--acc); }
+.palette-emoji { width: 20px; text-align: center; flex: none; }
+.palette-label { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-hint, .palette-enter { font-size: 11px; font-weight: 800; color: var(--sub); flex: none; }
+
+/* Renaming happens where the row already is: the pencil only shows on the
+   row being pointed at or arrowed to, so the list stays quiet. */
+.palette-edit {
+  flex: none; display: none; align-items: center; padding: 3px; border-radius: 8px;
+  color: var(--sub);
+}
+.palette-item:hover .palette-edit, .palette-item[data-on="1"] .palette-edit { display: flex; }
+.palette-edit:hover { background: var(--surface-strong); color: var(--ink); }
+.palette-item.editing { cursor: default; gap: 8px; padding-top: 6px; padding-bottom: 6px; }
+.palette-emoji-btn {
+  background: var(--bg); border: 2px solid var(--line); border-radius: 10px;
+  width: 34px; height: 34px; font-size: 15px; line-height: 1; cursor: pointer; color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.palette-emoji-btn:hover { border-color: var(--acc-soft); }
+input.palette-rename { flex: 1 1 auto; min-width: 0; width: auto; padding: 6px 10px; font-size: 13.5px; font-weight: 700; }
+.palette-rename:focus { outline: none; border-color: var(--acc); }
+.palette-foot {
+  border-top: 1.5px solid var(--line); padding: 11px var(--pal-pad); display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 11.5px; font-weight: 700; color: var(--sub);
+}
+.palette:not(.has-edit) .palette-foot-edit { display: none; }
+
+/* The app's own "are you sure?" — same overlay as the palette, but it asks a
+   question instead of offering a list. */
+.confirm {
+  width: min(440px, 100%); background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: 20px; box-shadow: 0 24px 60px var(--shadow); padding: 22px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.confirm-title { font-size: 17px; font-weight: 800; color: var(--ink); }
+.confirm-body { font-size: 13.5px; font-weight: 600; line-height: 1.5; color: var(--sub); }
+.confirm-body b { color: var(--ink); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.confirm-overlay { align-items: center; padding: 16px; }
+.kbd { background: var(--chip); border-radius: 5px; padding: 1px 6px; font-size: 11px; font-weight: 900; }
+/* Two keys in a row are two keys, not one wide one. */
+.kbd + .kbd { margin-left: 4px; }
+
+/* The button that opens it — the same control on every screen. */
+.cat-trigger {
+  display: flex; align-items: center; gap: 6px; width: 100%; cursor: pointer;
+  background: var(--bg); border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px;
+  font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; text-align: left;
+}
+.cat-trigger:hover { border-color: var(--acc-soft); }
+.cat-trigger.empty { color: var(--sub); }
+.cat-trigger-emoji { flex: none; }
+.cat-trigger-label { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.cat-trigger-caret { color: var(--sub); flex: none; display: inline-flex; }
+.cat-trigger-group, .super-badge {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 900; border-radius: 999px; padding: 2px 8px;
+  background: rgba(var(--acc-rgb), .14); color: var(--acc);
+}
+
+/* ---------- tab badge ---------- */
+.tab-badge {
+  display: inline-block; margin-left: 7px; border-radius: 999px; padding: 1px 7px;
+  font-size: 11px; font-weight: 900; background: var(--acc); color: var(--on-acc);
+  font-variant-numeric: tabular-nums;
+}
+.tab.active .tab-badge { background: var(--tab-on-ink); color: var(--tab-on); }
+
+/* ---------- import: one row per file ---------- */
+.import-file-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* One card per source, one sub-row per file: a month of statements is a dozen
+   files, and a card each turned the top of the screen into a scroll. */
+.import-source-card {
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 16px;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
+}
+.import-source-card.error { border-color: var(--acc); }
+.import-source-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.import-source-name { font-weight: 800; font-size: 14.5px; }
+.import-source-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--sub); white-space: nowrap; }
+
+.import-file-line {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 4px 0 4px 10px; margin-left: 3px; border-left: 2px solid var(--line);
+  font-size: 12.5px;
+}
+.import-file-line.error { border-left-color: var(--acc); }
+.import-file-line.error .import-file-count { color: var(--acc); }
+/* The count leads, in a column of its own, so the file names all start at the
+   same place instead of being pushed around by the length of the one above. */
+.import-file-count { flex: none; min-width: 82px; text-align: right; color: var(--sub); font-weight: 700; white-space: nowrap; }
+.import-file-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Inside the Splitwise card the unit is the group, not the file: the trip and
+   the learned categories belong to it, and two exports can share one. */
+.import-sw-group {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 280px);
+  gap: 6px 14px; align-items: start; padding: 8px 0;
+}
+.import-sw-group + .import-sw-group { border-top: 1px solid var(--row-line); }
+.import-sw-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.import-sw-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+/* The heading is the control that moves these exports to another Splitwise
+   group — the pencil that used to sit beside the picker read as a second way
+   to change the same thing. */
+.import-sw-name {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  background: none; border: none; padding: 2px 0; color: var(--ink);
+  font-weight: 800; font-size: 13px; text-align: left;
+}
+.import-sw-name:hover { color: var(--acc); }
+.import-sw-name svg { opacity: .65; }
+.import-sw-name:hover svg { opacity: 1; }
+.import-sw-super { min-width: 0; }
+
+.chip-edit {
+  background: var(--chip); color: var(--ink); border: none; border-radius: 999px;
+  padding: 2px 10px; font-size: 11.5px; font-weight: 800; cursor: pointer;
+}
+.chip-edit:hover { color: var(--acc); }
+.map-list { display: flex; flex-direction: column; gap: 3px; margin-top: 3px; }
+.map-row b { color: var(--ink); font-weight: 800; }
+.map-arrow { opacity: .6; display: inline-flex; }
+/* A Splitwise category and the budget category it answers to — clickable, so
+   the ones with no answer yet can be set up from the same list. */
+.map-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; text-align: left;
+  background: none; border: none; padding: 2px 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; color: var(--sub);
+}
+.map-row:hover { color: var(--acc); }
+.map-row svg { opacity: .5; }
+.map-row:hover svg { opacity: 1; }
+.map-target { color: var(--ink); }
+.map-row.unset .map-target, .cat-admin-title.unset { color: var(--sub); font-style: italic; font-weight: 700; }
+.filing { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; }
+.filing-todo { font-size: 12px; font-weight: 800; color: var(--sub); font-style: italic; }
+
+/* ---------- à classer ---------- */
+.inbox { display: flex; flex-direction: column; gap: 16px; }
+.inbox-head {
+  position: sticky; top: 0; z-index: 20;
+  margin: -18px calc(-1 * clamp(12px, 2vw, 22px)) 0;
+  padding: 16px clamp(12px, 2vw, 22px) 12px;
+  background: var(--surface); border-bottom: 1.5px solid var(--line);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.inbox-head-top { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.inbox-head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.inbox-title { font-size: 18px; font-weight: 900; letter-spacing: -.02em; }
+.inbox-sub { font-size: 13px; font-weight: 700; color: var(--sub); margin-top: 3px; }
+.pill-todo { background: rgba(var(--acc-rgb), .16); color: var(--acc); }
+
+.meter { height: 8px; border-radius: 999px; background: var(--chip); overflow: hidden; }
+.meter-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width .35s cubic-bezier(.22, .7, .3, 1); }
+.meter-row { display: flex; align-items: center; gap: 12px; }
+.meter-row .meter { flex: 1 1 auto; }
+.meter-label { font-size: 12px; font-weight: 800; color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kbd-hint { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; font-weight: 700; color: var(--sub); }
+
+.clusters { display: flex; flex-direction: column; gap: 8px; }
+.cluster {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center;
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 16px;
+  padding: 11px 14px; scroll-margin: 160px;
+}
+.cluster.on { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(var(--acc-rgb), .16); }
+.cluster.done { border-color: rgba(var(--green-rgb), .4); background: rgba(var(--green-rgb), .06); }
+.cluster.done .cluster-label { color: var(--sub); }
+.cluster-done-cat { font-weight: 800; color: var(--green); }
+.cluster-name { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; font-size: 14.5px; font-weight: 800; }
+.cluster-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cluster-amount { font-size: 15px; font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cluster-amount.neg { color: var(--acc); }
+.cluster-amount.pos { color: var(--green); }
+.cluster-meta { font-size: 12px; font-weight: 700; color: var(--sub); }
+.cluster-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip-suggest {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 6px 13px; font-size: 13px; font-weight: 800; color: var(--ink);
+}
+.chip-suggest:hover { border-color: var(--acc); }
+.chip-more { border-style: dashed; color: var(--sub); }
+.chip-key { background: var(--chip); border-radius: 5px; padding: 1px 5px; font-size: 10px; font-weight: 900; color: var(--sub); }
+
+/* The lines behind the decision under the cursor, in a slot of their own just
+   under the header. Capped and scrolled inside, so the slot is the same size
+   whether the cluster holds three lines or forty and nothing below it ever
+   moves as the cursor travels down the list. */
+.inbox-detail {
+  max-height: 152px; overflow-y: auto;
+  padding-top: 10px; border-top: 1px solid var(--row-line);
+}
+.inbox-detail table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.inbox-detail td { padding: 3px 10px 3px 0; vertical-align: top; }
+.inbox-detail td:last-child { padding-right: 0; }
+.cluster-row-date { width: 1%; white-space: nowrap; color: var(--sub); font-weight: 700; }
+.cluster-row-desc { font-weight: 700; }
+.cluster-row-file { width: 1%; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--sub); font-weight: 700; }
+.cluster-row-amount { width: 1%; text-align: right; white-space: nowrap; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cluster-row-amount.neg { color: var(--acc); }
+.cluster-row-amount.pos { color: var(--green); }
+
+/* What the last import left out, one row per reason. */
+.inbox-aside { display: flex; flex-direction: column; gap: 14px; }
+.aside-groups { display: flex; flex-direction: column; gap: 8px; }
+.aside-group {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 16px; padding: 11px 14px;
+}
+.aside-group-main { flex: 1 1 260px; min-width: 0; }
+.aside-group-title { font-size: 14px; font-weight: 800; }
+.aside-group-why { font-size: 12px; font-weight: 700; color: var(--sub); margin-top: 2px; }
+.aside-group-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* One line on the import screen, in place of a drawer nobody should open. */
+.import-aside-note { font-size: 12.5px; font-weight: 700; color: var(--sub); }
+
+.recap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.recap-chip {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 12px;
+  background: rgba(var(--green-rgb), .12); color: var(--green); font-size: 12.5px; font-weight: 800;
+}
+.recap-chip button { background: none; border: none; color: inherit; opacity: .7; cursor: pointer; padding: 0; display: inline-flex; }
+.recap-chip button:hover { opacity: 1; }
+
+@media (max-width: 720px) {
+  .import-sw-group { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,0 +1,4 @@
+node_modules/
+*.local.csv
+*.local.json
+.DS_Store
