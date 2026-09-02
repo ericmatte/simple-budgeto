@@ -12,4 +12,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      # Fails on an unreachable module or an unused dependency. Exports that
+      # only a test imports are reported by `npm run deadcode:full` instead:
+      # they are the seam the test reaches through, not dead code.
+      - run: npm run deadcode
       - run: npm test
