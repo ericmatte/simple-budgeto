@@ -7,8 +7,8 @@ paid them, and lays everything out in one table.
 
 ![The transactions list, grouped by month, with each row's source logo](docs/screenshots/transactions-light.jpg)
 
-🔗 **Live app:** https://ericmatte.me/simple-budgeto/
-🔍 **Demo (fake data):** https://ericmatte.me/simple-budgeto/?demo
+🔗 **Live app:** https://ericmatte.github.io/simple-budgeto/
+🔍 **Demo (fake data):** https://ericmatte.github.io/simple-budgeto/?demo
 
 ## What it does
 
