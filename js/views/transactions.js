@@ -10,6 +10,12 @@ const KNOWN_SOURCES = ['cibc', 'tangerine', 'wealthsimple', 'splitwise'];
 const DATE_RANGE_KEY = 'simple-budgeto.transaction-date-range';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+function appVersion() {
+  const now = new Date();
+  const pad = value => String(value).padStart(2, '0');
+  return `v${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.${pad(now.getHours())}h${pad(now.getMinutes())}`;
+}
+
 export function parseRange(stored) {
   try {
     const range = JSON.parse(stored || '{}') || {};
@@ -285,7 +291,7 @@ export function createTransactionsView(store) {
   }
 
   function emptyState() {
-    return `<div class="empty-state" style="padding:42px var(--tx-gutter);"><div class="empty-title">Charge tes transactions</div><div class="empty-body">Choisis un ou plusieurs exports; ils restent uniquement dans cette session.</div><div class="import-sources" style="margin-top:22px;text-align:left;"><div class="import-sources-title">Sources reconnues</div><div class="import-sources-list">${KNOWN_SOURCES.map(s => `<div class="import-source-chip">${sourceLogoHTML(s)}<span>${escapeHtml(sourceLabel(s))}</span></div>`).join('')}</div></div></div>`;
+    return `<div class="empty-state" style="padding:42px var(--tx-gutter);"><div class="empty-title">Charge tes transactions</div><div class="empty-body">Choisis un ou plusieurs exports; ils restent uniquement dans cette session.</div><div class="app-stamps" style="margin-top:8px;">${appVersion()}</div><div class="import-sources" style="margin-top:22px;text-align:left;"><div class="import-sources-title">Sources reconnues</div><div class="import-sources-list">${KNOWN_SOURCES.map(s => `<div class="import-source-chip">${sourceLogoHTML(s)}<span>${escapeHtml(sourceLabel(s))}</span></div>`).join('')}</div></div></div>`;
   }
 
   function fileButton() { return `<label class="btn btn-primary" style="cursor:pointer;">Choisir des fichiers<input class="tx-file-picker" type="file" multiple accept=".csv,.txt" style="display:none;"></label>`; }

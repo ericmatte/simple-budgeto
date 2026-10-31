@@ -16,7 +16,9 @@ const TRANSFER_SUBTYPES = new Set(['E_TRFOUT', 'E_TRFIN', 'TRANSFER', 'P2P']);
 function findHeaderRow(rows) {
   return rows.findIndex(r => {
     const h = r.map(c => c.toLowerCase().trim());
-    return h.includes('effective_at') && h.includes('net_cash_amount');
+    return (h.includes('effective_at') && h.includes('net_cash_amount'))
+      || (h.includes('effective_date') && h.includes('net_cash_amount'))
+      || (h.includes('transaction_date') && h.includes('amount') && h.includes('merchant'));
   });
 }
 
@@ -32,11 +34,13 @@ export function parse(text) {
   }
 
   const head = rows[headerIdx].map(c => c.toLowerCase().trim());
+  const creditCard = head.includes('transaction_date');
   const idx = {
-    date: head.indexOf('effective_at'),
-    description: head.indexOf('description'),
+    date: head.indexOf(creditCard ? 'transaction_date' : (head.includes('effective_at') ? 'effective_at' : 'effective_date')),
+    description: head.indexOf(creditCard ? 'merchant' : 'description'),
     subtype: head.indexOf('activity_sub_type'),
-    amount: head.indexOf('net_cash_amount'),
+    amount: head.indexOf(creditCard ? 'amount' : 'net_cash_amount'),
+    category: head.indexOf('category'),
   };
 
   const candidates = [];
@@ -57,7 +61,7 @@ export function parse(text) {
       id: stableHash(SOURCE, date, description, amount, i),
       date, description, amount,
       source: SOURCE,
-      suggestedCategory: SUBTYPE_CATEGORY[subtype] || null,
+      suggestedCategory: (idx.category >= 0 ? (row[idx.category] || '').trim() : '') || SUBTYPE_CATEGORY[subtype] || null,
       isTransfer: TRANSFER_SUBTYPES.has(subtype),
       raw: row,
       lineNo,
