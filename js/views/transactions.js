@@ -297,11 +297,14 @@ export function createTransactionsView(store) {
   function fileButton() { return `<label class="btn btn-primary" style="cursor:pointer;">Choisir des fichiers<input class="tx-file-picker" type="file" multiple accept=".csv,.txt" style="display:none;"></label>`; }
   function memberPicker(reports) {
     const names = commonMembers(reports.map(r => r.memberColumns));
+    const memberControl = names.length === 1
+      ? `<div>Confirme que c’est bien ton nom : <b>${escapeHtml(names[0])}</b><input type="hidden" data-who value="${escapeHtml(names[0])}"></div>`
+      : `<select data-who>${memberOptions(names)}</select>`;
     return `<div class="card"><div class="banner banner-info">
       <div>Qui es-tu dans ${reports.length > 1 ? 'ces exports Splitwise' : 'cet export Splitwise'} ?</div>
       <div class="tx-splitwise-files">${reports.map(r => escapeHtml(r.label || '(sans nom)')).join(' · ')}</div>
       <div class="import-who-row">
-        <select data-who>${memberOptions(names)}</select>
+        ${memberControl}
         <button class="btn btn-primary btn-sm" data-action="who">Importer</button>
       </div>
     </div><div class="import-actions"><button class="btn btn-ghost" data-action="cancel">Annuler</button></div></div>`;
