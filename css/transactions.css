@@ -28,6 +28,7 @@
 .import-sources-title { font-weight: 800; color: var(--ink); margin-bottom: 10px; }
 .import-sources-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .import-source-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 6px; font-size: 12.5px; font-weight: 800; color: var(--ink); }
+.app-version { margin-top: 12px; text-align: center; font-size: 11.5px; font-weight: 700; color: var(--sub); }
 
 .import-who-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 

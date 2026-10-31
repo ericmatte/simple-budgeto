@@ -291,7 +291,7 @@ export function createTransactionsView(store) {
   }
 
   function emptyState() {
-    return `<div class="empty-state" style="padding:42px var(--tx-gutter);"><div class="empty-title">Charge tes transactions</div><div class="empty-body">Choisis un ou plusieurs exports; ils restent uniquement dans cette session.</div><div class="import-sources" style="margin-top:22px;text-align:left;"><div class="import-sources-title">Sources reconnues</div><div class="import-sources-list">${KNOWN_SOURCES.map(s => `<div class="import-source-chip">${sourceLogoHTML(s)}<span>${escapeHtml(sourceLabel(s))}</span></div>`).join('')}</div></div><div class="app-stamps" style="margin-top:8px;">${APP_VERSION}</div></div>`;
+    return `<div class="empty-state" style="padding:42px var(--tx-gutter);"><div class="empty-title">Charge tes transactions</div><div class="empty-body">Choisis un ou plusieurs exports; ils restent uniquement dans cette session.</div><div class="import-sources" style="margin-top:22px;text-align:left;"><div class="import-sources-title">Sources reconnues</div><div class="import-sources-list">${KNOWN_SOURCES.map(s => `<div class="import-source-chip">${sourceLogoHTML(s)}<span>${escapeHtml(sourceLabel(s))}</span></div>`).join('')}</div></div><div class="app-version">${APP_VERSION}</div></div>`;
   }
 
   function fileButton() { return `<label class="btn btn-primary" style="cursor:pointer;">Choisir des fichiers<input class="tx-file-picker" type="file" multiple accept=".csv,.txt" style="display:none;"></label>`; }
