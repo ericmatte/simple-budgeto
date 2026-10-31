@@ -42,6 +42,9 @@ npm start     # http://localhost:5173
 A static server is needed because ES modules do not load over `file://`.
 `serve.js` is a dependency-free one for exactly that.
 
+The app version is refreshed by the Git pre-commit hook and committed with the
+change. Enable it once in a checkout with `git config core.hooksPath .githooks`.
+
 ## Checks
 
 ```bash

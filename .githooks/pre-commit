@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+node .githooks/update-version.js
+git add js/version.js
