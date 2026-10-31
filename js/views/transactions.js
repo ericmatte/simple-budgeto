@@ -144,7 +144,7 @@ export function createTransactionsView(store) {
   // here: it is a mark for this sitting, not a fact about the transaction.
   const checked = new Set();
   // The Splitwise column is worth its width only once something fills it.
-  let showSwCategory = false;
+  let showCategory = false;
   // The colour each Splitwise group wears, dealt out over the groups the
   // period actually shows.
   let groupPalette = new Map();
@@ -171,7 +171,7 @@ export function createTransactionsView(store) {
     const rows = visibleRows();
     if (rows.length && !rows.some(t => t.id === selectedId)) selectedId = rows[0].id;
     const hasTransactions = store.state.transactions.length > 0;
-    showSwCategory = rows.some(t => t.swCategory);
+    showCategory = rows.some(t => categoryForRow(t));
     groupPalette = groupColors(rows.map(t => t.swGroup));
 
     container.innerHTML = `<div class="card tx-card">
@@ -179,7 +179,7 @@ export function createTransactionsView(store) {
         <div class="tx-titlebar"><div><div style="font-size:18px;font-weight:800;">Transactions</div><div style="color:var(--sub);font-size:13px;">${plural(rows.length, 'transaction')}</div></div>${fileButton()}</div>
         ${hasTransactions ? filters() : ''}
       </div>
-      ${rows.length ? `<table class="tx-table"><thead><tr><th></th><th>Source</th><th>Date</th><th>Montant</th><th>Description</th>${showSwCategory ? '<th>Catégorie Splitwise</th>' : ''}</tr></thead><tbody>${monthGroups(rows)}</tbody></table>` : (hasTransactions ? '<div class="tx-no-results">Aucune transaction dans cette période.</div>' : emptyState())}
+      ${rows.length ? `<table class="tx-table"><thead><tr><th></th><th>Source</th><th>Date</th><th>Montant</th><th>Description</th>${showCategory ? '<th>Catégorie</th>' : ''}</tr></thead><tbody>${monthGroups(rows)}</tbody></table>` : (hasTransactions ? '<div class="tx-no-results">Aucune transaction dans cette période.</div>' : emptyState())}
     </div>`;
     wireList(container, rows);
     wireFilePicker(container);
@@ -233,7 +233,11 @@ export function createTransactionsView(store) {
     }).join('');
   }
 
-  function columnCount() { return showSwCategory ? 6 : 5; }
+  function columnCount() { return showCategory ? 6 : 5; }
+
+  function categoryForRow(t) {
+    return (t.sources || []).includes('splitwise') ? t.swCategory : t.sourceCategory;
+  }
 
   // A Splitwise mark carries the colour of the group the expense was shared
   // in: the reader keeps several groups, and the logo alone says nothing
@@ -250,8 +254,9 @@ export function createTransactionsView(store) {
     const sources = sourceMarks(t);
     const warning = matchDateWarning(t);
     const badge = warning ? `<span class="tx-date-warn" title="${escapeHtml(warning)}">${icon('alert', { size: 13, label: warning })}</span>` : '';
-    const swCategory = showSwCategory ? `<td class="tx-sw-category">${t.swCategory ? escapeHtml(t.swCategory) : '—'}</td>` : '';
-    return `<tr class="tx-row ${band} ${t.id === selectedId ? 'selected' : ''} ${checked.has(t.id) ? 'checked' : ''} ${isMutedRow(t) ? 'muted' : ''}" data-id="${escapeHtml(t.id)}">${markCell(t)}<td><div class="source-list">${sources}</div></td><td style="white-space:nowrap;">${escapeHtml(shortDate(t.date))}${badge}</td><td class="preview-amount ${t.amount < 0 ? 'neg' : 'pos'}">${money(t.amount, 2)}</td><td>${escapeHtml(rowDescription(t))}</td>${swCategory}</tr>`;
+    const category = categoryForRow(t);
+    const categoryCell = showCategory ? `<td class="tx-category">${category ? escapeHtml(category) : '—'}</td>` : '';
+    return `<tr class="tx-row ${band} ${t.id === selectedId ? 'selected' : ''} ${checked.has(t.id) ? 'checked' : ''} ${isMutedRow(t) ? 'muted' : ''}" data-id="${escapeHtml(t.id)}">${markCell(t)}<td><div class="source-list">${sources}</div></td><td style="white-space:nowrap;">${escapeHtml(shortDate(t.date))}${badge}</td><td class="preview-amount ${t.amount < 0 ? 'neg' : 'pos'}">${money(t.amount, 2)}</td><td>${escapeHtml(rowDescription(t))}</td>${categoryCell}</tr>`;
   }
 
   // Both marks share one slot: the tick box at rest, the copy button once the

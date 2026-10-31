@@ -116,7 +116,7 @@
 .preview-amount.neg { color: var(--ink); }
 .preview-amount.pos { color: var(--green); }
 
-.tx-sw-category { color: var(--sub); font-weight: 700; white-space: nowrap; }
+.tx-category { color: var(--sub); font-weight: 700; white-space: nowrap; }
 .tx-date-warn { display: inline-flex; vertical-align: -2px; margin-left: 6px; color: var(--acc); cursor: help; }
 
 /* ---------- the tick box / copy button ---------- */

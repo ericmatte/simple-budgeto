@@ -154,6 +154,7 @@ export function mergeMatched(stored, item, incoming) {
     // the one that steps aside — whichever of the two arrived first.
     matchDescription: (fromSplitwise ? incoming.description : stored.description) || stored.matchDescription || '',
     swCategory: (fromSplitwise ? incoming.swCategory : '') || stored.swCategory || '',
+    sourceCategory: (fromSplitwise ? stored.sourceCategory : incoming.sourceCategory) || stored.sourceCategory || '',
     swGroup: (fromSplitwise ? incoming.swGroup : '') || stored.swGroup || '',
     sources: [...new Set([...(stored.sources || []), item.source])],
     matchAmount: (fromSplitwise ? item.matchHint.amount : null) || stored.matchAmount,
@@ -181,6 +182,9 @@ export function toStoredTransaction(item, importBatchId) {
     // How Splitwise itself filed the expense. Only that side of a match can
     // answer for it: a bank parser puts its own guess in `suggestedCategory`.
     swCategory: (item.source === 'splitwise' ? item.suggestedCategory : item.matchCategory) || '',
+    // Category supplied by a bank or card export. The table uses this only
+    // when the transaction has no Splitwise counterpart.
+    sourceCategory: (item.source === 'splitwise' ? '' : item.suggestedCategory) || '',
     // Which Splitwise group the expense was shared in. The reader keeps
     // several at once, so the row has to say which one it belongs to.
     swGroup: (item.source === 'splitwise' ? item.splitwiseGroup : item.matchGroup) || '',
